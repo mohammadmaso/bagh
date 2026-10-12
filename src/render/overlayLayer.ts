@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import type { EngineContext, EngineLayer } from './engine'
-import { activeScenario } from '../store/store'
+import { activeScenario, useStore } from '../store/store'
 import { CATALOG_BY_ID } from '../data/catalog'
 import { shapeOf } from '../core/footprint'
 import { computeCollisions } from '../core/collision'
@@ -28,6 +28,7 @@ export class OverlayLayer implements EngineLayer {
   ghost: GhostState = { obj: null, valid: true, draft: null, draftTypeId: null, measure: null }
   collisions: ReturnType<typeof computeCollisions> = []
   private lastKey = ''
+  private lastRev = -1
 
   constructor() {
     this.group.name = 'overlay'
@@ -37,7 +38,11 @@ export class OverlayLayer implements EngineLayer {
   sync(ctx: EngineContext) {
     const sc = activeScenario(ctx.project)
     const objs = sc.order.map((id) => sc.objects[id]).filter(Boolean)
-    this.collisions = computeCollisions(objs, ctx.project.site)
+    const rev = useStore.getState().rev
+    const key = `${rev}|${ctx.ui.selection.join(',')}|${ctx.ui.hoverId}|${ctx.ui.time.ageYears}|${ctx.terrainRev}`
+    if (key === this.lastKey) return
+    if (rev !== this.lastRev) { this.collisions = computeCollisions(objs, ctx.project.site); this.lastRev = rev }
+    this.lastKey = key
     this.rebuild(ctx, objs)
   }
 

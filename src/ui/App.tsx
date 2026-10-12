@@ -1,9 +1,19 @@
-import { useEffect } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useStore } from '../store/store'
-import { useT } from '../i18n'
+import { useT, type Key } from '../i18n'
 import { Viewport } from './Viewport'
 import { SitePanel } from './SitePanel'
+import { LibraryPanel } from './LibraryPanel'
+import { PropertiesPanel } from './PropertiesPanel'
 import { TimeBar } from './TimeBar'
+import { Toolbar } from './Toolbar'
+import { useShortcuts } from './shortcuts'
+
+type PanelId = 'library' | 'site'
+const LEFT_TABS: { id: PanelId; label: Key; render: () => ReactNode }[] = [
+  { id: 'library', label: 'panel.library', render: () => <LibraryPanel /> },
+  { id: 'site', label: 'panel.site', render: () => <SitePanel /> },
+]
 
 export function App() {
   const { t, dir, lang } = useT()
@@ -13,6 +23,9 @@ export function App() {
   const redo = useStore((s) => s.redo)
   const canUndo = useStore((s) => s.past.length > 0)
   const canRedo = useStore((s) => s.future.length > 0)
+  const [tab, setTab] = useState<PanelId>('library')
+  const [showRight, setShowRight] = useState(true)
+  useShortcuts()
 
   useEffect(() => {
     document.documentElement.dir = dir
@@ -20,12 +33,13 @@ export function App() {
     document.documentElement.dataset.theme = ui.theme
   }, [dir, lang, ui.theme])
 
+  const current = LEFT_TABS.find((x) => x.id === tab)!
   return (
     <div className="app">
       <header className="topbar">
         <h1>🌿 {t('appName')}</h1>
-        <button className="btn" onClick={undo} disabled={!canUndo} aria-label={t('btn.undo')}>↶</button>
-        <button className="btn" onClick={redo} disabled={!canRedo} aria-label={t('btn.redo')}>↷</button>
+        <button className="btn" onClick={undo} disabled={!canUndo} aria-label={t('btn.undo')} title="Ctrl+Z">↶</button>
+        <button className="btn" onClick={redo} disabled={!canRedo} aria-label={t('btn.redo')} title="Ctrl+Shift+Z">↷</button>
         <div className="spacer" />
         <span className="seg" role="group" aria-label={t('ui.quality')}>
           {(['low', 'medium', 'high', 'ultra'] as const).map((q) => (
@@ -34,15 +48,25 @@ export function App() {
         </span>
         <button className="btn" onClick={() => setUI({ lang: lang === 'en' ? 'fa' : 'en' })} aria-label={t('ui.language')}>{lang === 'en' ? 'فارسی' : 'EN'}</button>
         <button className="btn" onClick={() => setUI({ theme: ui.theme === 'light' ? 'dark' : 'light' })} aria-label={t('ui.theme')}>{ui.theme === 'light' ? '☾' : '☀'}</button>
+        <button className="btn" onClick={() => setShowRight(!showRight)} aria-pressed={showRight} aria-label={t('panel.properties')}>⚙</button>
       </header>
       <div className="main">
-        <aside className="side" aria-label={t('panel.site')}>
+        <aside className="side" aria-label="Panels">
           <div className="tabs" role="tablist">
-            <button className="tab" role="tab" aria-selected>{t('panel.site')}</button>
+            {LEFT_TABS.map((x) => (
+              <button key={x.id} className="tab" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)}>{t(x.label)}</button>
+            ))}
           </div>
-          <div className="panel-body"><SitePanel /></div>
+          <div className="panel-body" role="tabpanel">{current.render()}</div>
         </aside>
-        <div className="stage"><Viewport /></div>
+        <div className="center">
+          <Toolbar />
+          <Viewport />
+        </div>
+        <aside className={'side right' + (showRight ? '' : ' hidden')} aria-label={t('panel.properties')}>
+          <div className="tabs"><span className="tab" aria-selected>{t('panel.properties')}</span></div>
+          <div className="panel-body"><PropertiesPanel /></div>
+        </aside>
       </div>
       <TimeBar />
     </div>

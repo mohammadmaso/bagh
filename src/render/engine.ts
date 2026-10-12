@@ -69,6 +69,8 @@ export class Engine {
   private perspSaved: { pos: THREE.Vector3; target: THREE.Vector3 } | null = null
   private anim: { t0: number; dur: number; from: { pos: THREE.Vector3; target: THREE.Vector3; zoom: number }; to: { pos: THREE.Vector3; target: THREE.Vector3; zoom: number }; cam: THREE.Camera; done?: () => void } | null = null
   sectionX = 16.5
+  private lastTerrainHit: { x: number; z: number } | null = null
+  lastPick() { return this.lastTerrainHit }
 
   init(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -362,6 +364,13 @@ export class Engine {
     if (this.fpsT >= 1) { this.fps = this.frames / this.fpsT; this.frames = 0; this.fpsT = 0 }
   }
 
+  /** Project a world point to client pixel coordinates. */
+  worldToScreen(x: number, y: number, z: number) {
+    const v = new THREE.Vector3(x, y, z).project(this.activeCamera)
+    const r = this.canvas.getBoundingClientRect()
+    return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height, visible: v.z > -1 && v.z < 1 }
+  }
+
   /** Raycast screen position (client px) against terrain; returns local-frame point or null. */
   pickTerrain(clientX: number, clientY: number): THREE.Vector3 | null {
     const rect = this.canvas.getBoundingClientRect()
@@ -369,6 +378,7 @@ export class Engine {
     const rc = new THREE.Raycaster()
     rc.setFromCamera(ndc, this.activeCamera)
     const hit = rc.intersectObject(this.terrainLayer.mesh!, false)[0]
+    if (hit) this.lastTerrainHit = { x: hit.point.x, z: hit.point.z }
     return hit ? hit.point : null
   }
 

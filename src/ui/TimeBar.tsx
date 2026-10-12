@@ -40,21 +40,14 @@ export function TimeBar() {
         <input id="tb-age" type="range" min={0} max={15} step={0.5} value={time.ageYears} onChange={(e) => setTime({ ageYears: +e.target.value })} />
         <span className="val">{n(time.ageYears)} {t('time.years')}</span>
       </div>
-      <div className="row" style={{ gridTemplateColumns: '70px 1fr' }}>
-        <span>{t('time.season')}</span>
-        <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          <span className="seg" role="group" aria-label={t('time.season')}>
-            {seasons.map((s) => (
-              <button key={s} className="btn" aria-pressed={time.seasonMode === s} onClick={() => setTime({ seasonMode: s })}>{t(`season.${s}` as const)}</button>
-            ))}
-          </span>
-          <button className="btn" aria-pressed={time.snow} onClick={() => setTime({ snow: !time.snow })}>{t('time.snow')}</button>
+      <div className="row extra">
+        <span className="seg" role="group" aria-label={t('time.season')}>
+          {seasons.map((s) => (
+            <button key={s} className="btn" aria-pressed={time.seasonMode === s} onClick={() => setTime({ seasonMode: s })}>{t(`season.${s}` as const)}</button>
+          ))}
         </span>
-      </div>
-      <div className="row" style={{ gridTemplateColumns: '1fr', gridColumn: '1 / -1' }}>
-        <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {presets.map(([label, p]) => <button key={label} className="btn" onClick={() => setTime({ month: p.month, day: p.day })}>{label}</button>)}
-        </span>
+        <button className="btn" aria-pressed={time.snow} onClick={() => setTime({ snow: !time.snow })}>{t('time.snow')}</button>
+        {presets.map(([label, p]) => <button key={label} className="btn" onClick={() => setTime({ month: p.month, day: p.day })}>{label}</button>)}
       </div>
     </div>
   )
