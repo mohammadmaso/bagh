@@ -62,6 +62,8 @@ export interface UIState {
   viewer: string | null
   /** side-by-side comparison with another plan */
   compareWith: string | null
+  /** extra params when placing a library entry that is parameterised (imported GLB) */
+  placingParams: Record<string, number | string | boolean> | null
 }
 
 interface Store {
@@ -93,7 +95,7 @@ const defaultUI: UIState = {
   lang: 'en', persianDigits: false, theme: 'light', view: 'persp', tool: 'select', overlay: 'none',
   quality: 'medium', qualityAuto: true, selection: [], placingType: null, gridSnap: 0.5, edgeSnap: true,
   allowOverlap: false, showRules: true, panel: 'library', time: { ...DEFAULT_TIME, year: now.getFullYear() },
-  tourDone: false, showFlightCones: true, showLabels: true, sunHoursPreset: 'summer', walkSpeed: 1.6, cleanMode: false, gizmo: 'translate', hud: null, toast: null, arrayDialog: false, contextMenu: null, hoverId: null, brush: { mode: 'raise', radius: 3, strength: 0.6 }, calibrate: null, pendingPin: null, viewer: null, compareWith: null,
+  tourDone: false, showFlightCones: true, showLabels: true, sunHoursPreset: 'summer', walkSpeed: 1.6, cleanMode: false, gizmo: 'translate', hud: null, toast: null, arrayDialog: false, contextMenu: null, hoverId: null, brush: { mode: 'raise', radius: 3, strength: 0.6 }, calibrate: null, pendingPin: null, viewer: null, compareWith: null, placingParams: null,
 }
 
 const HISTORY_LIMIT = 200

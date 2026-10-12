@@ -14,6 +14,8 @@ const MAX_CACHE = 160
 export const quantizeAge = (age: number) => Math.round(Math.max(0, age) * 2) / 2
 export const treeQualityScale = { value: 1, dist: 1 }
 
+export function getTreeGeo(sp: PlantSpecies, ageQ: number, lod: 0 | 1 | 2, variant: number): TreeGeo { return getGeo(sp, ageQ, lod, variant) }
+
 function getGeo(sp: PlantSpecies, ageQ: number, lod: 0 | 1 | 2, variant: number): TreeGeo {
   const key = `${sp.id}:${ageQ}:${lod}:${variant}:${treeQualityScale.value}`
   const hit = cache.get(key)
@@ -105,6 +107,8 @@ export function applySeasonToPlants(look: SeasonLook, time: number, wind: number
     m.u.uWind.value = wind
     m.u.uLeafCover.value = sp.deciduous ? look.leaf : 1
     m.u.uAutumnMix.value = look.autumn
+    m.leaf.visible = !sp.deciduous || look.leaf > 0.03
+    m.blob.visible = true
     // bloom window in doy
     if (sp.bloom) {
       const a = (sp.bloom[0] - 1) * 30.4 + 1, b = sp.bloom[1] * 30.4
@@ -112,6 +116,7 @@ export function applySeasonToPlants(look: SeasonLook, time: number, wind: number
       const inside = wrap ? Math.max(smoothstep(a - 8, a + 6, doy), 1 - smoothstep(b - 6, b + 8, doy)) : smoothstep(a - 8, a + 6, doy) * (1 - smoothstep(b - 6, b + 8, doy))
       m.u.uBlossom.value = inside
     } else m.u.uBlossom.value = 0
+    m.blossom.visible = m.u.uBlossom.value > 0.03
     // fruit window
     if (sp.harvest) {
       const a = (sp.harvest[0] - 1) * 30.4 + 1, b = sp.harvest[1] * 30.4

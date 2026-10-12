@@ -37,7 +37,7 @@ export const fa: Record<Key, string> = {
   'array.title': 'ابزار آرایه', 'array.count': 'تعداد', 'array.spacing': 'فاصله (متر)', 'array.mode': 'در امتداد', 'array.line': 'خط مستقیم', 'array.contour': 'منحنی تراز',
   'array.angle': 'جهت (درجه از شرق)', 'array.align': 'چرخش همراه ردیف', 'array.create': 'ایجاد', 'array.item': 'مورد', 'array.startHint': 'از شیء انتخاب‌شده (یا مرکز زمین) شروع می‌شود.',
   'btn.cancel': 'انصراف', 'toast.overlap': 'همپوشانی — مسدود شد (برای قرار دادن، «اجازه همپوشانی» را فعال کنید)',
-  'label.show': 'برچسب‌ها',
+  'label.show': 'برچسب‌ها', 'flight.cones': 'مخروط پرواز زنبور',
   'scale.m': 'م', 'north.arrow': 'شمال',
   'view.reset': 'بازنشانی نما', 'view.section.x': 'مقطع در X (متر)',
 }

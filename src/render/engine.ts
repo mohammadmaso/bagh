@@ -14,6 +14,7 @@ import { TerrainLayer } from './terrainLayer'
 import { buildFence, buildHouse, housePlacement } from './siteLayer'
 import { SkyLayer } from './skyLayer'
 import { QUALITY } from './quality'
+import { mergeStatic } from './models/mergeStatic'
 import { treeQualityScale } from './models/plantFactory'
 import { WalkController } from './walk'
 import type { ViewMode } from '../store/store'
@@ -190,6 +191,7 @@ export class Engine {
     const { site } = useStore.getState().project
     this.siteGroup.add(buildFence(site, this.terrain))
     const house = buildHouse(site, this.terrain)
+    mergeStatic(house.group)
     this.siteGroup.add(house.group)
     this.siteGroup.traverse((o) => {
       if ((o as THREE.Mesh).isMesh && o.name !== 'fence-wire') { o.castShadow = o.castShadow ?? true; o.receiveShadow = true }

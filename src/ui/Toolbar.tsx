@@ -34,6 +34,7 @@ export function Toolbar() {
       </label>
       <button className="btn" aria-pressed={ui.edgeSnap} onClick={() => setUI({ edgeSnap: !ui.edgeSnap })}>{t('snap.edges')}</button>
       <button className="btn" aria-pressed={ui.allowOverlap} onClick={() => setUI({ allowOverlap: !ui.allowOverlap })}>{t('snap.overlap')}</button>
+      <button className="btn" aria-pressed={ui.showFlightCones} onClick={() => setUI({ showFlightCones: !ui.showFlightCones })} title={t('flight.cones')}>🐝</button>
       <button className="btn" aria-pressed={ui.showLabels} onClick={() => setUI({ showLabels: !ui.showLabels })}>{t('label.show')}</button>
       {ui.view === 'section' && (
         <label className="inl">{t('view.section.x')}

@@ -7,6 +7,11 @@ import { applySeasonToPlants, quantizeAge } from './models/plantFactory'
 import type { EngineContext, EngineLayer } from './engine'
 import type { Pad, Cut } from '../core/terrain'
 import { localDims } from '../core/footprint'
+import { mergeStatic } from './models/mergeStatic'
+import { TreeInstancer, type TreeInstance } from './models/treeInstancer'
+import { PLANTS } from '../data/plants'
+import { plantSizeAt } from '../core/growth'
+import { QUALITY } from './quality'
 
 interface Entry {
   id: string
@@ -15,6 +20,8 @@ interface Entry {
   model: THREE.Object3D | null
   pick: THREE.Mesh
   obj: PlacedObject
+  /** crop clumps that are hidden in winter */
+  crops: THREE.Object3D[]
 }
 
 /** Maps scenario objects to Object3Ds; rebuilds a model only when its visual parameters change. */
@@ -22,10 +29,11 @@ export class ObjectsLayer implements EngineLayer {
   readonly group = new THREE.Group()
   entries = new Map<string, Entry>()
   pickGroup = new THREE.Group()
+  readonly trees = new TreeInstancer()
   private pickMat = new THREE.MeshBasicMaterial({ visible: false })
   constructor() {
     this.group.name = 'objects'
-    this.group.add(this.pickGroup)
+    this.group.add(this.pickGroup, this.trees.group)
   }
 
   /** Terrain pads for levelled objects. `base` is the terrain without pads (for stable levels). */
@@ -83,6 +91,7 @@ export class ObjectsLayer implements EngineLayer {
   sync(ctx: EngineContext) {
     const sc = ctx.project.scenarios[ctx.scenarioId] ?? activeScenario(ctx.project)
     const seen = new Set<string>()
+    const treeList: TreeInstance[] = []
     for (const id of sc.order) {
       const o = sc.objects[id]
       if (!o) continue
@@ -92,23 +101,43 @@ export class ObjectsLayer implements EngineLayer {
       const age = Math.max(0, ctx.ui.time.ageYears + o.ageOffset)
       const plantKey = item.plant ? `a${quantizeAge(age)}` : ''
       const key = [o.type, JSON.stringify(o.params), o.scale.toFixed(3), plantKey, o.points ? JSON.stringify(o.points) : '', item.plant ? '' : this.groundSig(ctx, o, item)].join('|')
+      const isTree = item.model === 'plant-tree' && !!item.plant
       let e = this.entries.get(id)
       if (!e) {
         const root = new THREE.Group()
         root.name = 'obj-' + id
         const pick = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), this.pickMat)
         pick.userData.objectId = id
-        e = { id, key: '', root, model: null, pick, obj: o }
+        e = { id, key: '', root, model: null, pick, obj: o, crops: [] }
         this.entries.set(id, e)
         this.group.add(root)
         this.pickGroup.add(pick)
       }
       e.obj = o
+      if (isTree) {
+        // trees are drawn by the instancer; the entry only carries the pick proxy
+        const sp = PLANTS[item.plant!]
+        const size = plantSizeAt(sp, age)
+        const y = this.groundY(ctx, o)
+        e.root.position.set(o.x, y, o.z)
+        e.root.visible = false
+        if (!o.hidden) treeList.push({ id, speciesId: sp.id, age, variant: hashStr(id) % 2, x: o.x, y, z: o.z, rot: o.rotY })
+        const w = Math.max(0.6, size.canopy * 0.6), h = Math.max(0.4, size.height)
+        e.pick.scale.set(w, h, w)
+        e.pick.position.set(o.x, y + h / 2, o.z)
+        e.pick.rotation.set(0, o.rotY, 0)
+        e.pick.visible = !o.hidden && !o.locked
+        e.pick.userData.locked = !!o.locked
+        continue
+      }
       if (e.key !== key) {
         e.key = key
         if (e.model) { e.root.remove(e.model); disposeModel(e.model) }
         const built = buildObjectModel(o, { terrain: ctx.terrain, age, quality: 1 })
+        if (item.model !== 'plant-tree' && item.model !== 'glb') mergeStatic(built)
         e.model = built
+        e.crops = []
+        built.traverse((c) => { if (c.userData.seasonal === 'crop') e!.crops.push(c) })
         built.scale.setScalar(item.plant ? 1 : o.scale)
         e.root.add(built)
         built.traverse((c) => { if ((c as THREE.Mesh).isMesh && c.castShadow === false && !c.userData.noShadow) c.receiveShadow = true })
@@ -144,11 +173,16 @@ export class ObjectsLayer implements EngineLayer {
       }
     }
     this.pickGroup.updateMatrixWorld(true)
+    this.trees.distScale = 0.5 + QUALITY[ctx.ui.quality].treeDetail
+    this.trees.setTrees(treeList)
     applySeasonToPlants(ctx.look, ctx.engine.time, 0.6)
   }
 
   frame(_dt: number, t: number, ctx: EngineContext) {
     applySeasonToPlants(ctx.look, t, 0.6)
+    this.trees.update(ctx.engine.activeCamera.position)
+    const crops = ctx.look.leaf > 0.25
+    for (const e of this.entries.values()) for (const c of e.crops) c.visible = crops
   }
 }
 

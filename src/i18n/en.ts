@@ -35,7 +35,7 @@ export const en = {
   'array.title': 'Array tool', 'array.count': 'Count', 'array.spacing': 'Spacing (m)', 'array.mode': 'Along', 'array.line': 'Straight line', 'array.contour': 'Contour line',
   'array.angle': 'Direction (° from east)', 'array.align': 'Rotate with row', 'array.create': 'Create', 'array.item': 'Item', 'array.startHint': 'Starts at the selected object (or plot centre).',
   'btn.cancel': 'Cancel', 'toast.overlap': 'Overlap — blocked (enable “Allow overlaps” to place anyway)',
-  'label.show': 'Labels',
+  'label.show': 'Labels', 'flight.cones': 'Hive flight cones',
   'scale.m': 'm', 'north.arrow': 'North',
   'view.reset': 'Reset view', 'view.section.x': 'Section at X (m)',
 } as const

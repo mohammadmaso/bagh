@@ -69,7 +69,9 @@ Object.assign(dynEn, {
   'exp.csv': 'Quantities (CSV)', 'exp.csvBtn': 'Export CSV', 'exp.video': 'Video', 'exp.turntable': 'Turntable 360°', 'exp.fly': 'Fly-through', 'exp.recording': 'Recording…', 'exp.working': 'Working…', 'exp.cancel': 'Cancel',
   'exp.json': 'Project (JSON)', 'exp.jsonBtn': 'Save project',
 })
+Object.assign(dynEn, { 'set.menu': 'Settings', 'set.light': 'Light', 'set.dark': 'Dark', 'set.walk': 'Walk speed (m/s)' })
 export const dynFa: Record<string, string> = {
+  'set.menu': 'تنظیمات', 'set.light': 'روشن', 'set.dark': 'تیره', 'set.walk': 'سرعت پیاده‌روی (م/ث)',
   'tour.title': 'تور سریع', 'tour.skip': 'رد کردن', 'tour.back': 'قبلی', 'tour.next': 'بعدی', 'tour.done': 'شروع طراحی',
   'tour.1': 'این زمین واقعی شماست: ۳۳ × ۳۰ متر، با شیب ۱۰ درجه رو به جنوب، حصارکشی شده، با دو درِ سمت غرب و کابین در پایین. برای چرخش بکشید، با راست‌کلیک جابه‌جا کنید، با اسکرول بزرگ‌نمایی کنید.',
   'tour.2': 'درخت، کندو، مرغدانی، باغچه، مخزن و مسیر را از کتابخانه روی زمین بکشید. هنگام قرار دادن R را برای چرخش بزنید؛ Ctrl+Z واگرد است.',

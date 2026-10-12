@@ -5,7 +5,7 @@ import { useAnalysis } from '../store/analysis'
 import { CATALOG_BY_ID } from '../data/catalog'
 import { shapeOf } from '../core/footprint'
 import { computeCollisions } from '../core/collision'
-import { outlineDecal, fillDecal, lineDecal, dotMarker } from './decals'
+import { outlineDecal, fillDecal, lineDecal, dotMarker, wedgeDecal } from './decals'
 import { PLANTS } from '../data/plants'
 import { plantSizeAt } from '../core/growth'
 import type { PlacedObject } from '../core/project'
@@ -43,7 +43,7 @@ export class OverlayLayer implements EngineLayer {
     const objs = sc.order.map((id) => sc.objects[id]).filter(Boolean)
     const rev = useStore.getState().rev
     const viol = ctx.ui.showRules ? useAnalysis.getState().violations : []
-    const key = `${rev}|${ctx.ui.selection.join(',')}|${ctx.ui.hoverId}|${ctx.ui.time.ageYears}|${ctx.terrainRev}|${ctx.ui.showRules}|${viol.map((v) => v.id + v.severity).join(';')}`
+    const key = `${rev}|${ctx.ui.selection.join(',')}|${ctx.ui.hoverId}|${ctx.ui.time.ageYears}|${ctx.terrainRev}|${ctx.ui.showRules}|${ctx.ui.showFlightCones}|${viol.map((v) => v.id + v.severity).join(';')}`
     if (key === this.lastKey) return
     if (rev !== this.lastRev) { this.collisions = computeCollisions(objs, ctx.project.site); this.lastRev = rev }
     this.lastKey = key
@@ -60,6 +60,21 @@ export class OverlayLayer implements EngineLayer {
       if (!bad.has(o.id)) continue
       const s = shapeOf(o)
       if (s) this.dynamic.add(fillDecal(s, t, '#ff2d2d', 0.38))
+    }
+    // beehive flight cones: entrance direction + likely flight corridor (green when a ≥ 2 m barrier shields it)
+    if (ui.showFlightCones) {
+      const barriers = objs.filter((o) => o.type === 'flight-barrier' && o.points && !o.hidden)
+      for (const o of objs) {
+        const it = CATALOG_BY_ID[o.type]
+        if (!it?.meta?.flightCone || o.hidden) continue
+        const fx = Math.sin(o.rotY), fz = Math.cos(o.rotY)
+        const ex = o.x + fx * 0.3, ez = o.z + fz * 0.3
+        const shielded = barriers.some((b) => b.points!.some((p) => (p.x - o.x) * fx + (p.z - o.z) * fz > 0.2 && Math.hypot(p.x - o.x, p.z - o.z) <= 3.2))
+        const col = shielded ? '#43c46a' : '#ffc61a'
+        this.dynamic.add(wedgeDecal(ex, ez, o.rotY, (38 * Math.PI) / 180, 9, t, col, 0.28))
+        this.dynamic.add(wedgeDecal(ex, ez, o.rotY, (12 * Math.PI) / 180, 20, t, col, 0.22))
+        this.dynamic.add(lineDecal([{ x: ex, z: ez }, { x: ex + fx * 20, z: ez + fz * 20 }], t, col, 0.14, 0.1))
+      }
     }
     // rule violations: coloured rings by worst severity
     if (ui.showRules) {

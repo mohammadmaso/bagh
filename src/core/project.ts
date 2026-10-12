@@ -56,6 +56,8 @@ export interface Project {
   images: ReferenceImage[]
   groups: Record<string, { id: string; name: string }>
   ruleConfig: RuleConfig
+  /** user-imported GLB/glTF models (base64) */
+  assets: Record<string, { id: string; name: string; data: string }>
   bookmarks: { id: string; name: string; pos: number[]; target: number[]; view: string; zoom?: number }[]
 }
 
@@ -76,6 +78,7 @@ export function newProject(): Project {
     images: [],
     groups: {},
     ruleConfig: {},
+    assets: {},
     bookmarks: [],
   }
 }
@@ -104,6 +107,7 @@ export function migrateProject(raw: unknown): Project {
   out.images ??= []
   out.groups ??= {}
   out.ruleConfig ??= {}
+  out.assets ??= {}
   out.bookmarks ??= []
   if (!out.scenarios?.[out.activeScenarioId]) {
     out.activeScenarioId = out.scenarioOrder?.[0] ?? Object.keys(out.scenarios)[0]

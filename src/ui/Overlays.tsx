@@ -4,6 +4,8 @@ import { useStore, activeScenario } from '../store/store'
 import { useT } from '../i18n'
 import { engine } from '../render/engine'
 import { CATALOG_BY_ID } from '../data/catalog'
+import { localDims } from '../core/footprint'
+import { polylineLength } from '../core/geometry2d'
 
 /** Compass (north arrow) that follows the camera heading, plus a metric scale bar. */
 export function CompassAndScale() {
@@ -103,10 +105,20 @@ export function Labels() {
   return (
     <div ref={ref} className="labels" aria-hidden>
       {entries.map((o) => (
-        <div key={o.id} data-id={o.id} className={'label' + (sel.includes(o.id) ? ' sel' : '')}>{o.label || CATALOG_BY_ID[o.type]?.name[lang]}</div>
+        <div key={o.id} data-id={o.id} className={'label' + (sel.includes(o.id) ? ' sel' : '')}>{o.label || CATALOG_BY_ID[o.type]?.name[lang]}{(sel.includes(o.id) || view === 'plan') && dimText(o)}</div>
       ))}
     </div>
   )
+}
+
+function dimText(o: { type: string; points?: { x: number; z: number }[]; params: Record<string, number | string | boolean>; scale: number }) {
+  const it = CATALOG_BY_ID[o.type]
+  if (!it) return null
+  if (it.kind === 'polyline' && o.points) return <small> · {polylineLength(o.points).toFixed(1)} m</small>
+  if (it.plant) return null
+  const d = localDims(it, o.params)
+  const f = (v: number) => (Math.round(v * o.scale * 10) / 10).toString()
+  return <small> · {it.fp.shape === 'circle' ? `⌀${f(Math.max(d.w, d.d))}` : `${f(d.w)}×${f(d.d)}`} m</small>
 }
 
 export function Hud() {

@@ -22,8 +22,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-.app { display: grid; grid-template-rows: 44px 1fr auto; height: 100%; }
-.topbar { display: flex; align-items: center; gap: 8px; padding: 0 10px; background: var(--panel); border-bottom: 1px solid var(--line); z-index: 5; overflow-x: auto; scrollbar-width: none; }
+.app { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+.topbar { display: flex; align-items: center; gap: 8px; padding: 0 10px; background: var(--panel); border-bottom: 1px solid var(--line); z-index: 40; position: relative; flex-wrap: wrap; min-height: 44px; padding-block: 4px; }
 .topbar h1 { font-size: 15px; margin: 0 8px; white-space: nowrap; font-weight: 700; }
 .spacer { flex: 1; }
 .main { position: relative; display: grid; grid-template-columns: auto 1fr auto; min-height: 0; }
@@ -148,3 +148,8 @@ button { cursor: pointer; }
 .menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; } .menu > button { text-align: start; border: 0; background: transparent; padding: 6px 10px; border-radius: 6px; white-space: nowrap; } .menu > button:hover { background: var(--panel-2); }
 .save-ind { font-size: 11px; color: var(--muted); white-space: nowrap; } .save-ind.error { color: var(--danger); }
 kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; font-size: 11px; }
+
+.menu { z-index: 60; max-height: 80vh; overflow-y: auto; }
+.toolbar { position: relative; z-index: 35; }
+.topbar .btn, .topbar .seg, .menu-wrap { flex: none; }
+.menu { display: flex; flex-direction: column; }

@@ -87,3 +87,22 @@ export function dotMarker(x: number, z: number, t: Terrain, color: string, r = 0
   m.renderOrder = 20
   return m
 }
+
+/** Draped circular sector (hive flight cone): apex (x,z), heading `dir` (rad, three rotation.y convention: front = (sin, cos)). */
+export function wedgeDecal(x: number, z: number, dir: number, halfAngle: number, radius: number, t: Terrain, color: string, opacity = 0.3, lift = 0.07): THREE.Mesh {
+  const n = 28
+  const pos: number[] = [x, t.heightAt(x, z) + lift, z], idx: number[] = []
+  for (let i = 0; i <= n; i++) {
+    const a = dir - halfAngle + (2 * halfAngle * i) / n
+    // subdivide the radius so the fan drapes on slopes
+    const px = x + Math.sin(a) * radius, pz = z + Math.cos(a) * radius
+    pos.push(px, t.heightAt(px, pz) + lift, pz)
+  }
+  for (let i = 0; i < n; i++) idx.push(0, 1 + i, 2 + i)
+  // mid ring for better draping
+  const g = new THREE.BufferGeometry()
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx)
+  const m = new THREE.Mesh(g, decalMat(color, opacity))
+  m.renderOrder = 8
+  return m
+}

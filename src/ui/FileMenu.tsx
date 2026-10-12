@@ -52,7 +52,7 @@ export function SaveIndicator() {
   return <span className={'save-ind ' + s} aria-live="polite">{s === 'saving' ? tx('file.saving') : s === 'saved' ? '✓ ' + tx('file.saved') : '⚠ ' + tx('file.unsaved')}</span>
 }
 
-function Menu({ label, tour, children }: { label: string; tour?: string; children: (close: () => void) => React.ReactNode }) {
+export function Menu({ label, tour, children }: { label: string; tour?: string; children: (close: () => void) => React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
   useEffect(() => {

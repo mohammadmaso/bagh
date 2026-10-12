@@ -16,6 +16,7 @@ import { ImagesPanel, ImageViewer } from './ImagesPanel'
 import { PlansPanel } from './PlansPanel'
 import { FileMenu, HelpMenu, SaveIndicator } from './FileMenu'
 import { Tour } from './Tour'
+import { SettingsMenu } from './SettingsMenu'
 import { ComparePane } from './Viewport'
 import { useAnalysis } from '../store/analysis'
 
@@ -59,6 +60,7 @@ export function App() {
         <h1>🌿 {t('appName')}</h1>
         <FileMenu />
         <HelpMenu onTour={() => setTour(true)} />
+        <SettingsMenu />
         <button className="btn" onClick={undo} disabled={!canUndo} aria-label={t('btn.undo')} title="Ctrl+Z">↶</button>
         <button className="btn" onClick={redo} disabled={!canRedo} aria-label={t('btn.redo')} title="Ctrl+Shift+Z">↷</button>
         <SaveIndicator />

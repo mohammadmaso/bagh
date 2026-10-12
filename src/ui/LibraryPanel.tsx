@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CATALOG, CATEGORIES, type CatalogItem } from '../data/catalog'
+import { CATALOG, CATALOG_BY_ID, CATEGORIES, type CatalogItem } from '../data/catalog'
 import { useStore } from '../store/store'
 import { useT } from '../i18n'
 import { getThumbnail } from '../render/thumbnails'
+import { importGLBFile } from '../render/models/glb'
 
 function Thumb({ id }: { id: string }) {
   const [src, setSrc] = useState<string>('')
@@ -29,6 +30,17 @@ export function LibraryPanel() {
   const [open, setOpen] = useState<Record<string, boolean>>({ fruit: true })
   const setUI = useStore((s) => s.setUI)
   const placing = useStore((s) => s.ui.placingType)
+  const assets = useStore((s) => s.project.assets)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const onGlb = async (f?: File) => {
+    if (!f) return
+    try {
+      const r = await importGLBFile(f)
+      const w = Math.max(0.1, Math.round(r.size.x * 100) / 100), d = Math.max(0.1, Math.round(r.size.z * 100) / 100)
+      setUI({ tool: 'place', placingType: 'custom-glb', placingParams: { assetId: r.id, width: w, depth: d, modelScale: 1 }, toast: r.name })
+    } catch (e) { setUI({ toast: 'Cannot read model: ' + String((e as Error).message) }) }
+    if (fileRef.current) fileRef.current.value = ''
+  }
 
   const nameOf = (c: CatalogItem) => c.name[lang]
   const filtered = useMemo(() => {
@@ -37,9 +49,9 @@ export function LibraryPanel() {
     return CATALOG.filter((c) => c.name.en.toLowerCase().includes(s) || c.name.fa.includes(s) || c.tags.some((x) => x.includes(s)) || c.id.includes(s))
   }, [q])
 
-  const start = (c: CatalogItem) => {
-    if (c.kind === 'polyline') setUI({ tool: 'path', placingType: c.id })
-    else setUI({ tool: 'place', placingType: c.id })
+  const start = (c: CatalogItem, params?: Record<string, number | string | boolean>) => {
+    if (c.kind === 'polyline') setUI({ tool: 'path', placingType: c.id, placingParams: null })
+    else setUI({ tool: 'place', placingType: c.id, placingParams: params ?? null })
   }
 
   const row = (c: CatalogItem) => (
@@ -58,6 +70,7 @@ export function LibraryPanel() {
     <div>
       <input className="search" type="search" placeholder={t('lib.search')} value={q} onChange={(e) => setQ(e.target.value)} aria-label={t('lib.search')} />
       <p className="hint">{t('lib.hint')}</p>
+      <input ref={fileRef} type="file" accept=".glb,.gltf,model/gltf-binary" hidden onChange={(e) => onGlb(e.target.files?.[0])} />
       {filtered ? (
         filtered.length ? <ul className="lib-list">{filtered.map(row)}</ul> : <p className="hint">{t('lib.none')}</p>
       ) : (
@@ -70,7 +83,14 @@ export function LibraryPanel() {
               <button className="lib-cat-h" aria-expanded={!!isOpen} onClick={() => setOpen({ ...open, [cat.id]: !isOpen })}>
                 <span>{cat.icon} {cat.name[lang]}</span><span>{items.length} {isOpen ? '▾' : '▸'}</span>
               </button>
-              {isOpen && <ul className="lib-list">{items.map(row)}</ul>}
+              {isOpen && cat.id === 'custom' ? (
+                <div>
+                  <div className="btn-row"><button className="btn primary" onClick={() => fileRef.current?.click()}>{lang === 'fa' ? 'وارد کردن GLB…' : 'Import GLB / glTF…'}</button></div>
+                  <ul className="lib-list">{Object.values(assets ?? {}).map((a) => (
+                    <li key={a.id}><button className="lib-item" onClick={() => start(CATALOG_BY_ID['custom-glb'], { assetId: a.id })}><span className="thumb">📦</span><span className="lib-name">{a.name}</span></button></li>
+                  ))}</ul>
+                </div>
+              ) : isOpen && <ul className="lib-list">{items.map(row)}</ul>}
             </section>
           )
         })

@@ -114,7 +114,7 @@ export class Interaction {
 
   private ghostObject(type: string, x: number, z: number): PlacedObject {
     const item = CATALOG_BY_ID[type]
-    return { id: 'ghost', type, x, z, rotY: this.ghostRot, scale: 1, params: defaultParams(item), ageOffset: 0 }
+    return { id: 'ghost', type, x, z, rotY: this.ghostRot, scale: 1, params: { ...defaultParams(item), ...(this.ui.placingParams ?? {}) }, ageOffset: 0 }
   }
 
   // ---------------------------------------------------------------- pointer
@@ -375,7 +375,7 @@ export class Interaction {
         const p = snapPosition(g, hit.x, hit.z, Object.values(getObjects()), this.site, this.snapOpts())
         g.x = p.x; g.z = p.z
         if (!ui.allowOverlap && collidesWithAny(g, Object.values(getObjects()), this.site)) { useStore.getState().setUI({ toast: 'Overlap — blocked (enable “Allow overlaps” to place anyway)' }); return }
-        placeObject(ui.placingType, p.x, p.z, this.ghostRot)
+        placeObject(ui.placingType, p.x, p.z, this.ghostRot, ui.placingParams ? { params: { ...defaultParams(item), ...ui.placingParams } } : {})
         useStore.getState().setUI({ tool: 'place' })
       }
       return

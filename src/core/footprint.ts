@@ -29,6 +29,7 @@ export function localDims(item: CatalogItem, params: PlacedObject['params']): { 
   }
   if (item.id === 'herb-spiral') { const d = resolveDim('$diameter', p); return { w: d, d } }
   if (item.id === 'gazebo') { const d = resolveDim('$diameter', p); return { w: d, d } }
+  if (item.id === 'custom-glb') { const k = typeof p.modelScale === 'number' ? p.modelScale : 1; return { w: resolveDim('$width', p) * k, d: resolveDim('$depth', p) * k } }
   if (item.id === 'hive-langstroth' || item.id === 'hive-topbar') return { w: resolveDim(item.fp.w, p), d: resolveDim(item.fp.d, p) }
   if (item.id === 'rabbit-hutches') return { w: 1.0 * resolveDim('$count', p), d: 0.9 }
   return { w: resolveDim(item.fp.w, p), d: resolveDim(item.fp.d, p) }

@@ -5,6 +5,7 @@ import type { BuildCtx } from './index'
 import * as G from './growing'
 import * as A from './animals'
 import * as B from './buildings'
+import { glbModel } from './glb'
 
 export type Builder = (item: CatalogItem, obj: PlacedObject, ctx: BuildCtx) => THREE.Object3D
 
@@ -17,5 +18,5 @@ export const STRUCTURE_BUILDERS: Record<string, Builder> = {
   'hive-langstroth': A.hiveLangstroth, 'hive-topbar': A.hiveTopbar, 'hive-stand': A.hiveStand, 'bee-water': A.beeWater,
   'house-gable': B.houseGable, shed: B.shed, firewood: B.firewood, pergola: B.pergola, gazebo: B.gazebo, compost: B.compost,
   'tank-ibc': B.tankIBC, 'tank-poly': B.tankPoly, well: B.well, pond: B.pond, solar: B.solar, tap: B.tap, sink: B.sink, bench: B.bench,
-  'level-pad': B.levelPad, picnic: B.picnic, 'light-post': B.lightPost, parking: B.parking, steps: B.steps, gate: B.gate, human: B.human, car: B.car, glb: B.glbPlaceholder,
+  'level-pad': B.levelPad, picnic: B.picnic, 'light-post': B.lightPost, parking: B.parking, steps: B.steps, gate: B.gate, human: B.human, car: B.car, glb: glbModel,
 }

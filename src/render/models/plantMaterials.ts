@@ -121,7 +121,11 @@ varying float vRand;
 `
 const WIND_BODY = `
 {
+#ifdef USE_INSTANCING
+  vec3 wp = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz;
+#else
   vec3 wp = (modelMatrix * vec4(transformed, 1.0)).xyz;
+#endif
   float ph = uTime * 1.7 + wp.x * 0.33 + wp.z * 0.29 + aRand * 6.2831;
   float gust = 0.6 + 0.4 * sin(uTime * 0.37 + wp.x * 0.05);
   transformed += vec3(sin(ph), 0.35 * sin(ph * 1.9 + 1.3), cos(ph * 0.83)) * aSway * uWind * 0.055 * gust;
