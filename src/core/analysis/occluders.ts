@@ -135,9 +135,10 @@ export function buildOccluders(objects: PlacedObject[], ctx: OccluderContext): O
       }
       default: {
         // low ground-level things (beds, hives) are measured, not obstacles: skipping them keeps their own cells sunlit
-        if (item.role === 'bed' || item.role === 'bed-leafy' || item.role === 'hive' || item.role === 'bee-water') break
+        const role: string = item.role
+        if (role === 'bed' || role === 'bed-leafy' || role === 'hive' || role === 'bee-water') break
         const hgt = Math.max(0.1, item.height * o.scale)
-        const op = item.role === 'bed' || item.role === 'bed-leafy' ? 1 : 1
+        const op = 1
         if (hgt > 0.15) out.push(boxFor(o, id, w, dd, y0, typeof o.params.height === 'number' && item.model === 'raised-bed' ? (o.params.height as number) + 0.25 : hgt, op))
       }
     }
