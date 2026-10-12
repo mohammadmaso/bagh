@@ -1,3 +1,4 @@
+import { current, isDraft } from 'immer'
 import { useStore } from './store'
 import { uid, emptyScenario } from '../core/project'
 
@@ -6,7 +7,7 @@ export function addScenario(name?: string, copyFrom?: string): string {
   useStore.getState().commit((d) => {
     const src = copyFrom ? d.scenarios[copyFrom] : null
     const n = d.scenarioOrder.length
-    const sc = src ? structuredClone(src) : emptyScenario(id, '')
+    const sc = src ? structuredClone(isDraft(src) ? current(src) : src) : emptyScenario(id, '')
     sc.id = id
     sc.name = name ?? (src ? `${src.name} copy` : `Plan ${String.fromCharCode(65 + n)}`)
     if (src) {

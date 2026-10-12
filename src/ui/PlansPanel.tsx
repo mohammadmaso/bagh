@@ -33,7 +33,7 @@ export function PlansPanel() {
             </label>
             <span className="plan-actions">
               <button className="btn" onClick={() => setEditing(r.id)} aria-label={tx('pl.rename')} title={tx('pl.rename')}>✎</button>
-              {r.id !== active && <button className="btn" aria-pressed={compare === r.id} onClick={() => startCompare(r.id)} title={tx('pl.compare')}>⇄</button>}
+              {r.id !== active && <button className="btn" aria-pressed={compare === r.id} onClick={() => startCompare(r.id)} aria-label={tx('pl.compare')} title={tx('pl.compare')}>⇄</button>}
               <button className="btn" disabled={rows.length <= 1} onClick={() => deleteScenario(r.id)} aria-label={tx('pl.delete')} title={tx('pl.delete')}>🗑</button>
             </span>
           </li>

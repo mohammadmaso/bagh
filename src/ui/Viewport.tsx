@@ -11,6 +11,7 @@ import { startOverlayController } from '../render/analysisOverlay'
 import { Interaction } from '../render/interaction'
 import { addObject, useStore, activeScenario } from '../store/store'
 import * as actions from '../store/actions'
+import { loadExample } from './FileMenu'
 import { CompassAndScale, Labels, Hud } from './Overlays'
 import { ContextMenu } from './ContextMenu'
 import { ArrayDialog } from './ArrayDialog'
@@ -53,7 +54,7 @@ export function Viewport() {
     ;(window as any).__engine = engine
     ;(window as any).__objects = objects
     ;(window as any).__overlay = overlay
-    ;(window as any).__garden = { addObject, store: useStore, actions, analysis: useAnalysis }
+    ;(window as any).__garden = { addObject, store: useStore, actions, analysis: useAnalysis, loadExample }
     // react to UI state that drives the engine
     let lastView = useStore.getState().ui.view
     let lastTool = useStore.getState().ui.tool
