@@ -2,14 +2,14 @@
 import { chromium } from '@playwright/test'
 import fs from 'node:fs'
 const set = process.argv[2] ?? 'times'
-const URL = process.env.URL ?? 'http://localhost:5173/'
+const URL = (process.env.URL ?? 'http://localhost:5173/') + '?q=medium'
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] })
 const page = await browser.newPage({ viewport: { width: 1400, height: 860 } })
 const logs = []
 page.on('console', (m) => { if (!['debug', 'info', 'log'].includes(m.type())) logs.push(m.type() + ': ' + m.text()) })
 page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message))
 await page.goto(URL)
-await page.waitForFunction(() => window.__engine && window.__garden)
+await page.waitForFunction(() => window.__engine && window.__garden); await page.evaluate(() => window.__garden.store.getState().setUI({ tourDone: true }))
 const setup = fs.readFileSync('scripts/scene-setup.js', 'utf8')
 await page.evaluate(`(async()=>{${setup}})()`)
 await page.waitForTimeout(1500)

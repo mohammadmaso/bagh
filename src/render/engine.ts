@@ -87,6 +87,8 @@ export class Engine {
     })
     this.renderer = renderer
     renderer.shadowMap.enabled = true
+    renderer.shadowMap.autoUpdate = false // re-rendered only when the sun, layout or growth changes (big win with 300+ objects)
+    renderer.shadowMap.needsUpdate = true
     renderer.shadowMap.type = THREE.PCFShadowMap
     renderer.outputColorSpace = THREE.SRGBColorSpace
     this.scene.add(this.terrainLayer.group, this.siteGroup)
@@ -94,10 +96,10 @@ export class Engine {
     this.scene.add(this.sky.group)
     this.scene.fog = this.sky.fog
 
-    this.camera.position.set(-16, 11, 50)
+    this.camera.position.set(-9, 10.5, 42)
     this.camera.near = 0.1
     this.controls = new OrbitControls(this.camera, canvas)
-    this.controls.target.set(16, 2.5, 14)
+    this.controls.target.set(16.5, 2.2, 15)
     this.controls.enableDamping = true
     this.controls.dampingFactor = 0.08
     this.controls.maxPolarAngle = Math.PI * 0.495
@@ -179,6 +181,7 @@ export class Engine {
     const ctx = this.ctx
     for (const l of this.layers) l.sync?.(ctx)
     this.dirty = true
+    this.renderer.shadowMap.needsUpdate = true
   }
 
   private rebuildSite() {
@@ -287,7 +290,7 @@ export class Engine {
       this.camera.near = 0.1; this.camera.updateProjectionMatrix()
       c.minPolarAngle = 0; c.maxPolarAngle = Math.PI * 0.495
       const s = this.perspSaved
-      this.camera.position.copy(s?.pos ?? new THREE.Vector3(-16, 11, 50)); c.target.copy(s?.target ?? new THREE.Vector3(16, 2.5, 14))
+      this.camera.position.copy(s?.pos ?? new THREE.Vector3(-9, 10.5, 42)); c.target.copy(s?.target ?? new THREE.Vector3(16.5, 2.2, 15))
       c.enabled = true
     } else if (mode === 'plan') {
       const o = this.orthoCamera
@@ -330,6 +333,31 @@ export class Engine {
     this.scene.background = tex
     this.scene.backgroundIntensity = 1
     this.dirty = true
+  }
+
+  /**
+   * Quick GPU benchmark: time ~40 frames of the actual scene at Medium and pick a preset. Skips the first frames
+   * (shader compiles, texture uploads). Returns the chosen preset; the caller applies it when `qualityAuto` is on.
+   */
+  benchmark(frames = 40, warmup = 20): Promise<{ avgMs: number; preset: 'low' | 'medium' | 'high' | 'ultra' }> {
+    return new Promise((resolve) => {
+      const times: number[] = []
+      let last = performance.now(), n = 0
+      const f = () => {
+        const now = performance.now()
+        n++
+        if (n > warmup) times.push(now - last)
+        last = now
+        if (times.length >= frames) {
+          this.onFrame = this.onFrame.filter((x) => x !== f)
+          times.sort((a, b) => a - b)
+          const avg = times.slice(0, Math.ceil(times.length * 0.8)).reduce((a, b) => a + b, 0) / Math.ceil(times.length * 0.8) // trimmed mean
+          const preset = avg > 26 ? 'low' : avg > 12 ? 'medium' : avg > 7.5 ? 'high' : 'ultra'
+          resolve({ avgMs: avg, preset })
+        }
+      }
+      this.onFrame.push(f)
+    })
   }
 
   private captureSaved: { pr: number } | null = null

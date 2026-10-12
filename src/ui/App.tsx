@@ -42,7 +42,7 @@ export function App() {
   const [tab, setTab] = useState<PanelId>('library')
   const [showRight, setShowRight] = useState(true)
   const [tour, setTour] = useState(false)
-  useEffect(() => { if (!ui.tourDone) { const id = setTimeout(() => setTour(true), 1200); return () => clearTimeout(id) } }, [ui.tourDone])
+  useEffect(() => { if (!ui.tourDone) { const id = setTimeout(() => setTour(true), 1200); return () => clearTimeout(id) } else setTour(false) }, [ui.tourDone])
   const issueCount = useAnalysis((s) => s.violations.filter((v) => v.severity !== 'info').length)
   useShortcuts()
 
@@ -64,8 +64,9 @@ export function App() {
         <SaveIndicator />
         <div className="spacer" />
         <span className="seg" role="group" aria-label={t('ui.quality')}>
+          <button className="btn" aria-pressed={ui.qualityAuto} onClick={() => setUI({ qualityAuto: !ui.qualityAuto })}>{t('quality.auto')}</button>
           {(['low', 'medium', 'high', 'ultra'] as const).map((q) => (
-            <button key={q} className="btn" aria-pressed={ui.quality === q} onClick={() => setUI({ quality: q, qualityAuto: false })}>{t(`quality.${q}` as const)}</button>
+            <button key={q} className="btn" aria-pressed={ui.quality === q && !ui.qualityAuto} onClick={() => setUI({ quality: q, qualityAuto: false })}>{t(`quality.${q}` as const)}</button>
           ))}
         </span>
         <button className="btn" onClick={() => setUI({ lang: lang === 'en' ? 'fa' : 'en' })} aria-label={t('ui.language')}>{lang === 'en' ? 'فارسی' : 'EN'}</button>

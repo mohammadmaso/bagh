@@ -6,6 +6,7 @@ import { SectionLayer } from '../render/sectionLayer'
 import { GrassLayer } from '../render/grassLayer'
 import { startAnalysisController, useAnalysis } from '../store/analysis'
 import { ImageryLayer } from '../render/imageryLayer'
+import { ContextLayer } from '../render/contextLayer'
 import { startOverlayController } from '../render/analysisOverlay'
 import { Interaction } from '../render/interaction'
 import { addObject, useStore, activeScenario } from '../store/store'
@@ -29,6 +30,7 @@ export function Viewport() {
     engine.addLayer(objects)
     const imagery = new ImageryLayer()
     imagery.onSkyChange = (t) => engine.setSkyPhoto(t)
+    engine.addLayer(new ContextLayer())
     engine.addLayer(new GrassLayer())
     engine.addLayer(imagery)
     engine.addLayer(overlay)
@@ -37,6 +39,16 @@ export function Viewport() {
     interaction.imageryGroup = imagery.group
     useAnalysis.subscribe(() => overlay.invalidate(engine.ctx))
     startAnalysisController()
+    // pick a quality preset from a quick benchmark unless the user chose one (or ?q=medium forces it)
+    const forced = new URLSearchParams(location.search).get('q') as 'low' | 'medium' | 'high' | 'ultra' | null
+    if (forced) useStore.getState().setUI({ quality: forced, qualityAuto: false })
+    else if (useStore.getState().ui.qualityAuto) {
+      useStore.getState().setUI({ quality: 'medium' })
+      setTimeout(async () => {
+        const r = await engine.benchmark()
+        if (useStore.getState().ui.qualityAuto) { useStore.getState().setUI({ quality: r.preset }); ;(window as any).__benchmark = r }
+      }, 1500)
+    }
     startOverlayController()
     ;(window as any).__engine = engine
     ;(window as any).__objects = objects

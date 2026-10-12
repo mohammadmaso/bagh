@@ -5,7 +5,7 @@ const page = await browser.newPage({ viewport: { width: 1500, height: 900 } })
 const logs = []
 page.on('console', (m) => { if (!['debug', 'info', 'log'].includes(m.type())) logs.push(m.type() + ': ' + m.text()) })
 page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message))
-await page.goto(process.env.URL ?? 'http://localhost:5173/')
+await page.goto((process.env.URL ?? 'http://localhost:5173/') + '?q=medium')
 await page.waitForFunction(() => window.__engine && window.__garden)
 await page.evaluate(`(async()=>{${fs.readFileSync('scripts/analysis-demo.js', 'utf8')}})()`)
 await page.getByRole('tab', { name: 'Analysis' }).click()
