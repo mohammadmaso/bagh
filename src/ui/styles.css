@@ -122,3 +122,20 @@ button { cursor: pointer; }
 .viol span { color: var(--muted); font-size: 12px; }
 .rule-edit { border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; padding: 6px 10px; } .rule-edit legend { font-weight: 600; padding: 0 4px; }
 .hint.ok { color: var(--ok); }
+
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: grid; place-items: center; }
+.modal-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; max-width: 92vw; box-shadow: var(--shadow); }
+.calib-dot { position: absolute; transform: translate(-50%, -50%); background: #ffd54a; color: #000; font-weight: 700; border-radius: 50%; width: 22px; height: 22px; display: grid; place-items: center; border: 2px solid #000; pointer-events: none; }
+
+.compare { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; min-height: 0; background: var(--line); }
+.compare .pane { position: relative; display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--bg); }
+.compare .pane .stage { flex: 1; } .pane-h { position: absolute; z-index: 5; top: 6px; inset-inline-start: 8px; background: rgba(20,28,22,.85); color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 12px; }
+.plan-list { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; }
+.plan-list li { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; }
+.plan-list li.active { border-color: var(--accent); background: var(--panel-2); }
+.plan-name { display: flex; align-items: center; gap: 6px; min-width: 0; } .plan-actions { display: flex; gap: 3px; } .plan-actions .btn { padding: 2px 7px; }
+
+.menu-wrap { position: relative; display: inline-block; }
+.menu { position: absolute; top: 110%; inset-inline-start: 0; z-index: 30; min-width: 210px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 4px; }
+.menu-row { display: flex; gap: 2px; } .menu-row button { border: 0; background: transparent; padding: 5px 9px; border-radius: 6px; text-align: start; } .menu-row button:first-child { flex: 1; }
+.menu-row button:hover { background: var(--panel-2); } .menu-row.save input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; }

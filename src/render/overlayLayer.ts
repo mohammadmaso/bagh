@@ -19,6 +19,8 @@ export interface GhostState {
   draft: Vec2[] | null
   draftTypeId: string | null
   measure: Vec2[] | null
+  brushAt?: { x: number; z: number; r: number } | null
+  previewLines?: Vec2[][] | null
 }
 
 /** Selection outlines, collision highlights, canopy rings, placement ghost and polyline/measure drafts. */
@@ -130,6 +132,8 @@ export class OverlayLayer implements EngineLayer {
       if (pts.length > 1) this.ghostGroup.add(lineDecal(pts, t, color, 0.16, 0.12))
       pts.forEach((p) => this.ghostGroup.add(dotMarker(p.x, p.z, t, color, 0.15)))
     }
+    if (this.ghost.brushAt) this.ghostGroup.add(outlineDecal({ type: 'circle', x: this.ghost.brushAt.x, z: this.ghost.brushAt.z, r: this.ghost.brushAt.r }, t, '#ffffff', 0.12, 0.1))
+    for (const l of this.ghost.previewLines ?? []) if (l.length > 1) this.ghostGroup.add(lineDecal(l, t, '#ff8a3d', 0.3, 0.14))
     if (draft) lineOf(draft, '#ffd54a')
     if (measure) lineOf(measure, '#40c4ff')
   }
@@ -138,7 +142,7 @@ export class OverlayLayer implements EngineLayer {
   invalidate(ctx: EngineContext) { this.lastKey = ''; this.sync(ctx) }
 
   clearGhost(ctx: EngineContext) {
-    this.setGhost(ctx, { obj: null, draft: null, measure: null })
+    this.setGhost(ctx, { obj: null, draft: null, measure: null, brushAt: null })
   }
 }
 export type { Shape }

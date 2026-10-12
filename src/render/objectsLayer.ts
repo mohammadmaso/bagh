@@ -81,7 +81,7 @@ export class ObjectsLayer implements EngineLayer {
   }
 
   sync(ctx: EngineContext) {
-    const sc = activeScenario(ctx.project)
+    const sc = ctx.project.scenarios[ctx.scenarioId] ?? activeScenario(ctx.project)
     const seen = new Set<string>()
     for (const id of sc.order) {
       const o = sc.objects[id]

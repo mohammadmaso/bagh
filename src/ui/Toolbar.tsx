@@ -1,5 +1,6 @@
 import { useStore } from '../store/store'
 import { engine } from '../render/engine'
+import { ViewsMenu } from './ViewsMenu'
 import { useT } from '../i18n'
 
 export function Toolbar() {
@@ -39,6 +40,7 @@ export function Toolbar() {
           <input type="range" min={0} max={useStore.getState().project.site.width} step={0.5} defaultValue={engine.sectionX} onChange={(e) => engine.setSectionX(+e.target.value)} aria-label={t('view.section.x')} />
         </label>
       )}
+      <ViewsMenu />
       <div className="spacer" />
       <span className="seg" role="group" aria-label="View">
         {views.map((v, i) => (

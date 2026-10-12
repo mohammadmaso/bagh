@@ -50,6 +50,15 @@ export function frontBearing(rotY: number): number {
 }
 const angDiff = (a: number, b: number) => { const d = Math.abs((((a - b) % 360) + 540) % 360 - 180); return d }
 
+/** slope/aspect of the natural ground (pads ignored) using a 4 m stencil */
+function groundSlope(t: Terrain, x: number, z: number) {
+  const e = 4
+  const gx = (t.groundAt(x + e, z) - t.groundAt(x - e, z)) / (2 * e), gz = (t.groundAt(x, z + e) - t.groundAt(x, z - e)) / (2 * e)
+  const mag = Math.hypot(gx, gz)
+  const az = (((Math.atan2(-gx, gz) / D2R) % 360) + 360) % 360
+  return { slopeDeg: (Math.atan(mag) / D2R), aspectDeg: mag < 1e-9 ? 0 : az }
+}
+
 function distToBoundary(site: SiteConfig, x: number, z: number) {
   return Math.min(x, site.width - x, z, site.depth - z)
 }
@@ -181,17 +190,17 @@ const E: Record<string, Evaluator> = {
     const sources = ctx.objects.filter((o) => !o.hidden && (item(o)?.meta?.livestock === true || item(o)?.meta?.pollutes === true))
     const targets = ctx.objects.filter((o) => !o.hidden && (item(o)?.role === 'well' || item(o)?.role === 'tank' || isLeafyBed(o)))
     for (const s of sources) {
-      const sl = ctx.terrain.slopeAt(s.x, s.z)
+      const sl = groundSlope(ctx.terrain, s.x, s.z)
       if (sl.slopeDeg < 0.5) continue
       const dd = { x: Math.sin(sl.aspectDeg * D2R), z: -Math.cos(sl.aspectDeg * D2R) } // downhill unit vector
-      const hs = ctx.terrain.heightAt(s.x, s.z)
+      const hs = ctx.terrain.groundAt(s.x, s.z)
       for (const t of targets) {
         const dx = t.x - s.x, dz = t.z - s.z
         const d = Math.hypot(dx, dz)
         if (d > def.params.distance || d < 0.01) continue
         const cos = (dx * dd.x + dz * dd.z) / d
         const ang = Math.acos(Math.max(-1, Math.min(1, cos))) / D2R
-        const drop = hs - ctx.terrain.heightAt(t.x, t.z)
+        const drop = hs - ctx.terrain.groundAt(t.x, t.z)
         if (ang <= def.params.coneDeg && drop > 0.2) {
           const sev = item(t)?.role === 'well' || item(t)?.role === 'tank' ? 'error' : undefined
           out.push({ objectIds: [s.id, t.id], at: { x: (s.x + t.x) / 2, z: (s.z + t.z) / 2 }, vars: { dist: fmt(d), need: def.params.distance, drop: fmt(drop), ...(sev ? { sev: 1 } : {}) }, refs: { a: s.id, b: t.id } })
@@ -266,7 +275,7 @@ const E: Record<string, Evaluator> = {
   frostPocket: (ctx, def) => {
     const out: ReturnType<Evaluator> = []
     const { site, terrain } = ctx
-    const corners4 = [[0, 0], [site.width, 0], [0, site.depth], [site.width, site.depth]].map(([x, z]) => terrain.heightAt(x, z))
+    const corners4 = [[0, 0], [site.width, 0], [0, site.depth], [site.width, site.depth]].map(([x, z]) => terrain.groundAt(x, z))
     const lo = Math.min(...corners4), hi = Math.max(...corners4)
     const range = Math.max(0.01, hi - lo)
     for (const o of ctx.objects) {
@@ -275,9 +284,9 @@ const E: Record<string, Evaluator> = {
       const sp = species(o)
       const sensitive = (sp?.frostSensitive === true) || it?.role === 'greenhouse' || isLeafyBed(o)
       if (!sensitive) continue
-      const h = terrain.heightAt(o.x, o.z)
+      const h = terrain.groundAt(o.x, o.z)
       const frac = (h - lo) / range
-      const slope = terrain.slopeAt(o.x, o.z).slopeDeg
+      const slope = groundSlope(terrain, o.x, o.z).slopeDeg
       let pit = 0
       if (ctx.pits) {
         const i = Math.floor((o.x - ctx.pits.x0) / ctx.pits.res), j = Math.floor((o.z - ctx.pits.z0) / ctx.pits.res)

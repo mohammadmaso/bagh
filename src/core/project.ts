@@ -30,11 +30,12 @@ export interface Scenario {
   order: string[]
 }
 
-export interface SculptData { res: number; nx: number; nz: number; data: number[] }
+/** terrain sculpt layer: base64-encoded Float32Array of height deltas (see core/sculpt.ts) */
+export interface SculptData { res: number; nx: number; nz: number; data: string }
 
 export interface ReferenceImage {
   id: string
-  kind: 'overlay' | 'pin'
+  kind: 'overlay' | 'pin' | 'sky'
   name: string
   /** stored as data URL (local only) */
   dataUrl: string

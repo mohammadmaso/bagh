@@ -11,14 +11,21 @@ import { useShortcuts } from './shortcuts'
 import { AnalysisPanel } from './AnalysisPanel'
 import { RulesPanel } from './RulesPanel'
 import { QuantitiesPanel } from './QuantitiesPanel'
+import { TerrainPanel } from './TerrainPanel'
+import { ImagesPanel, ImageViewer } from './ImagesPanel'
+import { PlansPanel } from './PlansPanel'
+import { ComparePane } from './Viewport'
 import { useAnalysis } from '../store/analysis'
 
-type PanelId = 'library' | 'site' | 'analysis' | 'rules' | 'quantities'
+type PanelId = 'library' | 'site' | 'analysis' | 'rules' | 'quantities' | 'terrain' | 'images' | 'plans'
 const LEFT_TABS: { id: PanelId; label: Key; render: () => ReactNode }[] = [
   { id: 'library', label: 'panel.library', render: () => <LibraryPanel /> },
   { id: 'analysis', label: 'panel.analysis', render: () => <AnalysisPanel /> },
   { id: 'rules', label: 'panel.rules', render: () => <RulesPanel /> },
   { id: 'quantities', label: 'panel.quantities', render: () => <QuantitiesPanel /> },
+  { id: 'terrain', label: 'panel.terrain', render: () => <TerrainPanel /> },
+  { id: 'images', label: 'panel.images', render: () => <ImagesPanel /> },
+  { id: 'plans', label: 'panel.scenarios', render: () => <PlansPanel /> },
   { id: 'site', label: 'panel.site', render: () => <SitePanel /> },
 ]
 
@@ -69,7 +76,12 @@ export function App() {
         </aside>
         <div className="center">
           <Toolbar />
-          <Viewport />
+          {ui.compareWith && useStore.getState().project.scenarios[ui.compareWith] ? (
+            <div className="compare">
+              <div className="pane"><div className="pane-h">{useStore.getState().project.scenarios[useStore.getState().project.activeScenarioId].name}</div><Viewport /></div>
+              <div className="pane"><div className="pane-h">{useStore.getState().project.scenarios[ui.compareWith].name}</div><div className="stage"><ComparePane scenarioId={ui.compareWith} /></div></div>
+            </div>
+          ) : <Viewport />}
         </div>
         <aside className={'side right' + (showRight ? '' : ' hidden')} aria-label={t('panel.properties')}>
           <div className="tabs"><span className="tab" aria-selected>{t('panel.properties')}</span></div>
@@ -77,6 +89,7 @@ export function App() {
         </aside>
       </div>
       <TimeBar />
+      <ImageViewer />
     </div>
   )
 }

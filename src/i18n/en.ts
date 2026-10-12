@@ -2,7 +2,7 @@ export const en = {
   appName: 'Garden Studio',
   'view.persp': 'Perspective', 'view.plan': 'Plan', 'view.section': 'Section', 'view.walk': 'Walk',
   'panel.library': 'Library', 'panel.properties': 'Properties', 'panel.site': 'Site', 'panel.analysis': 'Analysis',
-  'panel.rules': 'Rules', 'panel.quantities': 'Quantities', 'panel.images': 'Imagery', 'panel.scenarios': 'Plans',
+  'panel.rules': 'Rules', 'panel.terrain': 'Terrain', 'panel.quantities': 'Quantities', 'panel.images': 'Imagery', 'panel.scenarios': 'Plans',
   'time.date': 'Date', 'time.time': 'Time', 'time.season': 'Season', 'time.age': 'Tree age', 'time.years': 'yr',
   'season.auto': 'Auto', 'season.spring': 'Spring', 'season.summer': 'Summer', 'season.autumn': 'Autumn', 'season.winter': 'Winter',
   'time.snow': 'Snow', 'time.springEq': 'Spring equinox', 'time.summerSol': 'Summer solstice', 'time.autumnEq': 'Autumn equinox', 'time.winterSol': 'Winter solstice',

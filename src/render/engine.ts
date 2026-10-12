@@ -5,7 +5,8 @@ import {
   EffectComposer, RenderPass, EffectPass, NormalPass, SSAOEffect, SMAAEffect, ToneMappingEffect, ToneMappingMode, SMAAPreset,
 } from 'postprocessing'
 import { useStore, activeScenario, type UIState } from '../store/store'
-import { createTerrain, makeSculptGrid, type Terrain, type Pad, type Cut } from '../core/terrain'
+import { createTerrain, type Terrain, type Pad, type Cut } from '../core/terrain'
+import { decodeSculpt } from '../core/sculpt'
 import type { Project } from '../core/project'
 import { sunAt, siteLocalToDate } from '../core/sun'
 import { seasonLook } from '../core/season'
@@ -36,6 +37,8 @@ export interface EngineContext {
   terrain: Terrain
   look: ReturnType<typeof seasonLook>
   terrainRev: number
+  /** scenario rendered by this engine (the active plan unless overridden by the compare view) */
+  scenarioId: string
 }
 
 export class Engine {
@@ -55,7 +58,11 @@ export class Engine {
   private canvas!: HTMLCanvasElement
   private ro!: ResizeObserver
   private siteKey = ''
+  private sculptCache: { src: unknown; grid: ReturnType<typeof decodeSculpt> } | null = null
   terrainRev = 0
+  scenarioOverride: string | null = null
+  /** view-only engines (compare pane) skip analysis/interaction */
+  readOnly = false
   private dirty = true
   private lastQuality = ''
   time = 0
@@ -98,6 +105,7 @@ export class Engine {
     this.controls.maxDistance = 220
     this.controls.screenSpacePanning = false
     this.controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }
+    if (this.readOnly) this.controls.enabled = false
     this.controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }
     this.controls.addEventListener('change', () => (this.dirty = true))
 
@@ -119,7 +127,7 @@ export class Engine {
 
   get ctx(): EngineContext {
     const s = useStore.getState()
-    return { engine: this, project: s.project, ui: s.ui, terrain: this.terrain, look: this.lookCache, terrainRev: this.terrainRev }
+    return { engine: this, project: s.project, ui: s.ui, terrain: this.terrain, look: this.lookCache, terrainRev: this.terrainRev, scenarioId: this.scenarioOverride ?? s.project.activeScenarioId }
   }
 
   /** collect pads from the site's house and from placed objects (extended by layers via `extraPads`). */
@@ -133,13 +141,13 @@ export class Engine {
     // --- terrain / site geometry
     let sculptG = null
     if (project.sculpt) {
-      sculptG = makeSculptGrid(site.width, site.depth, project.sculpt.res)
-      sculptG.data.set(project.sculpt.data)
+      if (this.sculptCache?.src !== project.sculpt) this.sculptCache = { src: project.sculpt, grid: decodeSculpt(project.sculpt, site) }
+      sculptG = this.sculptCache.grid
     }
     const baseT = createTerrain(site, sculptG)
     const pads = this.extraPads(baseT)
     const cuts = this.extraCuts()
-    const key = JSON.stringify([site, project.sculpt?.data ? project.sculpt.data.length + ':' + hashArr(project.sculpt.data) : 0, pads, cuts])
+    const key = JSON.stringify([site, project.sculpt?.data ? project.sculpt.data.length + ':' + strHash(project.sculpt.data) : 0, pads, cuts])
     const geomChanged = key !== this.siteKey || force
     if (geomChanged) {
       this.siteKey = key
@@ -316,6 +324,14 @@ export class Engine {
     this.sync(true)
   }
 
+  /** Use a 360° photo as the sky (hides the procedural sky); pass null to restore it. */
+  setSkyPhoto(tex: THREE.Texture | null) {
+    this.sky.sky.visible = !tex
+    this.scene.background = tex
+    this.scene.backgroundIntensity = 1
+    this.dirty = true
+  }
+
   setSectionX(x: number) {
     this.sectionX = x
     this.applySectionClip()
@@ -403,9 +419,9 @@ export class Engine {
   }
 }
 
-function hashArr(a: ArrayLike<number>): number {
+function strHash(s: string): number {
   let h = 0
-  for (let i = 0; i < a.length; i += Math.max(1, (a.length / 512) | 0)) h = (h * 31 + Math.round(a[i] * 1000)) | 0
+  for (let i = 0; i < s.length; i += Math.max(1, (s.length / 2048) | 0)) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0
   return h
 }
 

@@ -12,11 +12,15 @@ import type { Engine } from './engine'
 import type { ObjectsLayer } from './objectsLayer'
 import type { OverlayLayer } from './overlayLayer'
 import { snap as snapGrid } from '../core/geometry2d'
+import { applyBrush, decodeSculpt, encodeSculpt } from '../core/sculpt'
+import type { SculptGrid } from '../core/terrain'
+import { calibrateOverlay } from '../core/imagery'
 
 type Drag =
   | { kind: 'move'; session: string; primary: string; start: Map<string, { x: number; z: number; points?: Vec2[] }>; startHit: THREE.Vector3; lastDelta: { x: number; z: number }; moved: boolean }
   | { kind: 'vertex'; session: string; id: string; index: number }
   | { kind: 'box'; x0: number; y0: number; additive: boolean }
+  | { kind: 'sculpt'; session: string; work: SculptGrid; target: number; last: number; lastCommit: number }
 
 export class Interaction {
   private tc: TransformControls
@@ -30,6 +34,7 @@ export class Interaction {
   private unsub: () => void
   private lastPointer = { x: 0, y: 0 }
   private lastHit: THREE.Vector3 | null = null
+  imageryGroup: THREE.Object3D | null = null
 
   constructor(private engine: Engine, private objects: ObjectsLayer, private overlay: OverlayLayer, private stage: HTMLElement) {
     this.tc = new TransformControls(engine.activeCamera as THREE.PerspectiveCamera, engine.renderer.domElement)
@@ -129,8 +134,18 @@ export class Interaction {
       if (hit) this.engine.controls.enabled = false
       return
     }
-    if (ui.tool === 'path' || ui.tool === 'measure' || ui.tool === 'sculpt') {
-      if (ui.tool !== 'sculpt') this.engine.controls.enabled = false
+    if (ui.tool === 'sculpt') {
+      if (hit) {
+        this.engine.controls.enabled = false
+        const proj = useStore.getState().project
+        const work = decodeSculpt(proj.sculpt, proj.site)
+        this.drag = { kind: 'sculpt', session: 's' + Date.now(), work, target: this.engine.terrain.heightAt(hit.x, hit.z), last: performance.now(), lastCommit: 0 }
+        this.sculptDab(this.drag, hit)
+      }
+      return
+    }
+    if (ui.tool === 'path' || ui.tool === 'measure') {
+      this.engine.controls.enabled = false
       return
     }
 
@@ -175,6 +190,16 @@ export class Interaction {
     // click on empty: handled on pointerup (deselect if not a camera drag)
   }
 
+  private pickPin(cx: number, cy: number): string | null {
+    if (!this.imageryGroup) return null
+    const r = this.rect()
+    const rc = new THREE.Raycaster()
+    rc.setFromCamera(new THREE.Vector2(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1), this.engine.activeCamera)
+    const sprites = this.imageryGroup.children.filter((o) => (o as THREE.Sprite).isSprite && o.userData.imageId)
+    const hit = rc.intersectObjects(sprites, false)[0]
+    return hit ? (hit.object.userData.imageId as string) : null
+  }
+
   private nearestVertex(o: PlacedObject, cx: number, cy: number): number {
     const r = this.rect()
     const t = this.engine.terrain
@@ -203,6 +228,8 @@ export class Interaction {
     if (!inside && !d) return
     const hit = this.engine.pickTerrain(e.clientX, e.clientY)
     this.lastHit = hit
+    if (d?.kind === 'sculpt' && hit) { this.sculptDab(d, hit); return }
+    if (ui.tool === 'sculpt' && hit && !d) { this.sculptCursor(hit); return }
     if (d?.kind === 'vertex' && hit) {
       const g = this.ui.gridSnap
       updateObjects([d.id], (o) => { if (o.points) o.points[d.index] = { x: snapGrid(hit.x, g), z: snapGrid(hit.z, g) } }, d.session)
@@ -240,6 +267,22 @@ export class Interaction {
   }
 
   private cursorPoint = false
+
+  private sculptCursor(hit: THREE.Vector3) {
+    this.overlay.setGhost(this.ctx(), { obj: null, brushAt: { x: hit.x, z: hit.z, r: this.ui.brush.radius } })
+  }
+
+  private sculptDab(d: Extract<Drag, { kind: 'sculpt' }>, hit: THREE.Vector3) {
+    const now = performance.now()
+    const dt = Math.min(0.12, (now - d.last) / 1000)
+    d.last = now
+    applyBrush(d.work, (x, z) => this.engine.terrain.baseHeightAt(x, z), this.ui.brush, hit.x, hit.z, Math.max(dt, 0.016), d.target)
+    this.sculptCursor(hit)
+    if (now - d.lastCommit > 60) {
+      d.lastCommit = now
+      useStore.getState().commit((p) => { p.sculpt = encodeSculpt(d.work) }, d.session)
+    }
+  }
 
   private snapPoint(hit: THREE.Vector3): Vec2 {
     const g = this.ui.gridSnap
@@ -318,6 +361,7 @@ export class Interaction {
       this.finishBox(d, e)
       return
     }
+    if (d?.kind === 'sculpt') { useStore.getState().commit((p) => { p.sculpt = encodeSculpt(d.work) }, d.session); useStore.setState({ lastCoalesce: null }); return }
     if (d?.kind === 'move' || d?.kind === 'vertex') { this.overlay.setGhost(this.ctx(), { obj: null }); return }
     if (e.button !== 0 || (e.target as HTMLElement).closest?.('.overlay-ui > *')) return
     const r = this.rect()
@@ -346,8 +390,32 @@ export class Interaction {
       this.updateDraftHud(pts, e.clientX, e.clientY)
       return
     }
+    if (ui.pendingPin && hit) {
+      const imgId = ui.pendingPin
+      useStore.getState().commit((d) => { const im = d.images.find((x) => x.id === imgId); if (im) { im.cx = hit.x; im.cz = hit.z; im.visible = true } })
+      useStore.getState().setUI({ pendingPin: null, toast: null })
+      return
+    }
+    if (ui.calibrate && hit && (ui.calibrate.step === 'world-a' || ui.calibrate.step === 'world-b')) {
+      const cal = ui.calibrate
+      if (cal.step === 'world-a') useStore.getState().setUI({ calibrate: { ...cal, step: 'world-b', A: { x: hit.x, z: hit.z } }, toast: 'Now click the second reference point (B) on the terrain' })
+      else if (cal.a && cal.b && cal.A) {
+        const im = useStore.getState().project.images.find((x) => x.id === cal.imageId)
+        if (im) {
+          const size = (window as any).__imageSizes?.[im.id] as { w: number; h: number } | undefined
+          if (size) {
+            const c = calibrateOverlay({ w: size.w, h: size.h, a: cal.a, b: cal.b, A: cal.A, B: { x: hit.x, z: hit.z } })
+            useStore.getState().commit((d) => { const t = d.images.find((x) => x.id === cal.imageId); if (t) Object.assign(t, c, { visible: true }) })
+          }
+        }
+        useStore.getState().setUI({ calibrate: null, toast: 'Overlay calibrated' })
+      }
+      return
+    }
     if (ui.tool === 'select') {
       const id = this.pickObject(e.clientX, e.clientY)
+      const pin = !id ? this.pickPin(e.clientX, e.clientY) : null
+      if (pin) { useStore.getState().setUI({ viewer: pin }); return }
       if (!id && !e.shiftKey) select([])
     }
   }
@@ -399,7 +467,7 @@ export class Interaction {
 
   cancelTool() {
     this.cursorPoint = false
-    this.overlay.setGhost(this.ctx(), { obj: null, draft: null, measure: null })
+    this.overlay.setGhost(this.ctx(), { obj: null, draft: null, measure: null, brushAt: null })
     this.setHud(null)
     this.ghostRot = 0
   }

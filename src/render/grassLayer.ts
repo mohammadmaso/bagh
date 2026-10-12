@@ -67,7 +67,7 @@ export class GrassLayer implements EngineLayer {
   }
 
   private rebuildMasks(ctx: EngineContext) {
-    const sc = activeScenario(ctx.project)
+    const sc = ctx.project.scenarios[ctx.scenarioId] ?? activeScenario(ctx.project)
     this.masks = [houseShape(ctx.project.site)]
     this.pathLines = []
     for (const o of Object.values(sc.objects)) {
@@ -128,7 +128,8 @@ export class GrassLayer implements EngineLayer {
   }
 
   sync(ctx: EngineContext) {
-    const key = JSON.stringify([...activeScenario(ctx.project).order.map((id) => { const o = activeScenario(ctx.project).objects[id]; return [o.type, o.x, o.z, o.rotY, o.scale, o.hidden, o.points?.length, JSON.stringify(o.params)] })])
+    const scn = ctx.project.scenarios[ctx.scenarioId] ?? activeScenario(ctx.project)
+    const key = JSON.stringify([...scn.order.map((id) => { const o = scn.objects[id]; return [o.type, o.x, o.z, o.rotY, o.scale, o.hidden, o.points?.length, JSON.stringify(o.params)] })])
     if (key !== this.masksKey || ctx.terrainRev !== this.terrainRev) {
       this.masksKey = key
       this.terrainRev = ctx.terrainRev

@@ -104,3 +104,13 @@ describe('rules engine', () => {
     expect(ids(evaluateRules({ site: DEFAULT_SITE, terrain, objects: [bed], growingSun: grid }), 'bedSun')).toHaveLength(0)
   })
 })
+
+describe('rules on levelled pads', () => {
+  it('runoff rule uses natural ground, so a coop on a flat pad still counts as uphill', () => {
+    const coop = mk('c', 'chicken-coop', 16, 8)
+    const well = mk('w', 'well', 16, 16)
+    const padded = createTerrain(DEFAULT_SITE, null, [{ id: 'c', cx: 16, cz: 8, w: 6, d: 4, rotY: 0, level: terrain.baseHeightAt(16, 8), margin: 1 }, { id: 'w', cx: 16, cz: 16, w: 2, d: 2, rotY: 0, level: terrain.baseHeightAt(16, 16), margin: 1 }])
+    const v = evaluateRules({ site: DEFAULT_SITE, terrain: padded, objects: [coop, well] })
+    expect(v.filter((x) => x.ruleId === 'runoff')).toHaveLength(1)
+  })
+})

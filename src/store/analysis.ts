@@ -9,7 +9,8 @@ import { evaluateRules, type Violation, type SunGrid } from '../core/rules'
 import { seasonLook } from '../core/season'
 import { shapeOf } from '../core/footprint'
 import { CATALOG_BY_ID } from '../data/catalog'
-import { createTerrain, makeSculptGrid } from '../core/terrain'
+import { createTerrain } from '../core/terrain'
+import { decodeSculpt } from '../core/sculpt'
 import type { WorkerRequest, WorkerResponse } from '../workers/analysis.worker'
 
 export const PRESET_DATES = {
@@ -78,7 +79,7 @@ function baseInput() {
   const terrain = engine.terrain
   return {
     site, objects, terrain,
-    sculpt: s.project.sculpt ? { res: s.project.sculpt.res, data: s.project.sculpt.data } : null,
+    sculpt: s.project.sculpt ? { res: s.project.sculpt.res, data: Array.from(decodeSculpt(s.project.sculpt, site).data) } : null,
     pads: terrain.pads, cuts: terrain.cuts, age: s.ui.time.ageYears,
     year: s.ui.time.year,
   }
@@ -151,8 +152,7 @@ export function runTerrainAnalyses() {
   useAnalysis.setState({ slope: slopeGrid(t, 0.5), flow: computeFlow(t, 1) })
   const s = useStore.getState().project
   const site = s.site
-  let sculpt = null
-  if (s.sculpt) { sculpt = makeSculptGrid(site.width, site.depth, s.sculpt.res); sculpt.data.set(s.sculpt.data) }
+  const sculpt = s.sculpt ? decodeSculpt(s.sculpt, site) : null
   const base = createTerrain(site, sculpt, [], t.cuts)
   const pads = t.pads.filter((p) => p.id !== 'house')
   useAnalysis.setState({ cutfill: cutFill(base, t.pads.length ? t.pads : pads, 0.25) })

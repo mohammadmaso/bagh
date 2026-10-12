@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { enablePatches, produceWithPatches, applyPatches, enableMapSet, type Patch } from 'immer'
+import { enablePatches, produceWithPatches, produce, applyPatches, enableMapSet, type Patch } from 'immer'
 import { newProject, type Project, type PlacedObject, uid, migrateProject } from '../core/project'
 import type { Season } from '../core/sun'
 
@@ -53,6 +53,15 @@ export interface UIState {
   arrayDialog: boolean
   contextMenu: { x: number; y: number; id: string | null } | null
   hoverId: string | null
+  brush: { mode: 'raise' | 'lower' | 'smooth' | 'flatten'; radius: number; strength: number }
+  /** two-point overlay calibration in progress */
+  calibrate: { imageId: string; step: 'pick-image' | 'world-a' | 'world-b'; a?: { u: number; v: number }; b?: { u: number; v: number }; A?: { x: number; z: number } } | null
+  /** place the pin for this image id on the next terrain click */
+  pendingPin: string | null
+  /** image viewer modal */
+  viewer: string | null
+  /** side-by-side comparison with another plan */
+  compareWith: string | null
 }
 
 interface Store {
@@ -68,6 +77,8 @@ interface Store {
   replaceProject: (p: Project, keepHistory?: boolean) => void
   undo: () => void
   redo: () => void
+  /** change the project without recording undo history (e.g. switching the active plan) */
+  silent: (recipe: (draft: Project) => void) => void
   setUI: (patch: Partial<UIState>) => void
   setTime: (patch: Partial<TimeState>) => void
   lastCoalesce: string | null
@@ -82,10 +93,27 @@ const defaultUI: UIState = {
   lang: 'en', persianDigits: false, theme: 'light', view: 'persp', tool: 'select', overlay: 'none',
   quality: 'medium', qualityAuto: true, selection: [], placingType: null, gridSnap: 0.5, edgeSnap: true,
   allowOverlap: false, showRules: true, panel: 'library', time: { ...DEFAULT_TIME, year: now.getFullYear() },
-  tourDone: false, showFlightCones: true, showLabels: true, sunHoursPreset: 'summer', walkSpeed: 1.6, cleanMode: false, gizmo: 'translate', hud: null, toast: null, arrayDialog: false, contextMenu: null, hoverId: null,
+  tourDone: false, showFlightCones: true, showLabels: true, sunHoursPreset: 'summer', walkSpeed: 1.6, cleanMode: false, gizmo: 'translate', hud: null, toast: null, arrayDialog: false, contextMenu: null, hoverId: null, brush: { mode: 'raise', radius: 3, strength: 0.6 }, calibrate: null, pendingPin: null, viewer: null, compareWith: null,
 }
 
 const HISTORY_LIMIT = 200
+
+/** Collapse repeated whole-value `replace` patches on the same path (drags/strokes) so history stays small. */
+function dedupe(patches: Patch[], keep: 'last' | 'first-applied-last'): Patch[] {
+  const seen = new Map<string, number>()
+  const out: Patch[] = []
+  for (const p of patches) {
+    if (p.op === 'replace' && p.path.length <= 3) {
+      const key = p.path.join('/')
+      const at = seen.get(key)
+      if (at !== undefined) { out[at] = p; continue }
+      seen.set(key, out.length)
+    }
+    out.push(p)
+  }
+  void keep
+  return out
+}
 
 export const useStore = create<Store>((set, get) => ({
   project: newProject(),
@@ -101,7 +129,7 @@ export const useStore = create<Store>((set, get) => ({
     let newPast = past
     if (coalesceKey && coalesceKey === lastCoalesce && past.length) {
       const last = past[past.length - 1]
-      newPast = [...past.slice(0, -1), { patches: [...last.patches, ...patches], inverse: [...inverse, ...last.inverse] }]
+      newPast = [...past.slice(0, -1), { patches: dedupe([...last.patches, ...patches], 'last'), inverse: dedupe([...inverse, ...last.inverse], 'first-applied-last') }]
     } else {
       newPast = [...past, { patches, inverse }].slice(-HISTORY_LIMIT)
     }
@@ -125,6 +153,7 @@ export const useStore = create<Store>((set, get) => ({
       project: applyPatches(project, step.patches), past: [...past, step], future: future.slice(1), rev: s.rev + 1, lastCoalesce: null,
     }))
   },
+  silent: (recipe) => set((s) => ({ project: produce(s.project, recipe), rev: s.rev + 1, lastCoalesce: null })),
   setUI: (patch) => set((s) => ({ ui: { ...s.ui, ...patch } })),
   setTime: (patch) => set((s) => ({ ui: { ...s.ui, time: { ...s.ui.time, ...patch } } })),
 }))

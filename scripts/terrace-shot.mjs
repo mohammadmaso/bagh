@@ -1,0 +1,18 @@
+import { chromium } from '@playwright/test'
+const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] })
+const page = await browser.newPage({ viewport: { width: 1500, height: 900 } })
+const logs = []
+page.on('console', (m) => { if (!['debug', 'info', 'log'].includes(m.type())) logs.push(m.type() + ': ' + m.text()) })
+page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message))
+await page.goto(process.env.URL ?? 'http://localhost:5173/')
+await page.waitForFunction(() => window.__engine && window.__garden)
+await page.getByRole('tab', { name: 'Terrain' }).click()
+await page.waitForTimeout(1500)
+await page.evaluate(() => { const e = window.__engine; e.camera.position.set(-8, 14, 40); e.controls.target.set(16, 2, 12); e.controls.update() })
+await page.waitForTimeout(2500)
+await page.screenshot({ path: 'shots/terrace_preview.png' })
+await page.getByRole('button', { name: 'Generate terraces' }).click()
+await page.waitForTimeout(3500)
+await page.screenshot({ path: 'shots/terrace_done.png' })
+console.log(logs.slice(0, 20).join('\n'))
+await browser.close()

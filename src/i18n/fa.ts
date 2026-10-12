@@ -4,7 +4,7 @@ export const fa: Record<Key, string> = {
   appName: 'استودیوی باغ',
   'view.persp': 'پرسپکتیو', 'view.plan': 'پلان', 'view.section': 'مقطع', 'view.walk': 'پیاده‌روی',
   'panel.library': 'کتابخانه', 'panel.properties': 'ویژگی‌ها', 'panel.site': 'زمین', 'panel.analysis': 'تحلیل',
-  'panel.rules': 'قوانین', 'panel.quantities': 'مقادیر', 'panel.images': 'تصاویر', 'panel.scenarios': 'طرح‌ها',
+  'panel.rules': 'قوانین', 'panel.terrain': 'زمین', 'panel.quantities': 'مقادیر', 'panel.images': 'تصاویر', 'panel.scenarios': 'طرح‌ها',
   'time.date': 'تاریخ', 'time.time': 'ساعت', 'time.season': 'فصل', 'time.age': 'سن درخت', 'time.years': 'سال',
   'season.auto': 'خودکار', 'season.spring': 'بهار', 'season.summer': 'تابستان', 'season.autumn': 'پاییز', 'season.winter': 'زمستان',
   'time.snow': 'برف', 'time.springEq': 'اعتدال بهاری', 'time.summerSol': 'انقلاب تابستانی', 'time.autumnEq': 'اعتدال پاییزی', 'time.winterSol': 'انقلاب زمستانی',

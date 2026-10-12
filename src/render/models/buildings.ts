@@ -246,6 +246,15 @@ export const parking: Builder = (item, obj, ctx) => {
   return g
 }
 
+export const levelPad: Builder = (item, obj) => {
+  const W = P(obj, 'width', 4), D = P(obj, 'depth', 4)
+  const g = new THREE.Group()
+  g.add(box(W, 0.04, D, cmat('#6f8a4a', 1), 0, 0.02, 0, false))
+  const e = cmat('#8a8478', 0.95)
+  g.add(box(W + 0.2, 0.12, 0.1, e, 0, 0.06, D / 2 + 0.05), box(W + 0.2, 0.12, 0.1, e, 0, 0.06, -D / 2 - 0.05), box(0.1, 0.12, D, e, W / 2 + 0.05, 0.06, 0), box(0.1, 0.12, D, e, -W / 2 - 0.05, 0.06, 0))
+  return g
+}
+
 export const steps: Builder = (item, obj, ctx) => {
   const W = P(obj, 'width', 1.2), L = P(obj, 'length', 2.4)
   const g = new THREE.Group()

@@ -79,6 +79,8 @@ export interface Terrain {
   heightAt(x: number, z: number): number
   /** base (unsculpted) plane height */
   baseHeightAt(x: number, z: number): number
+  /** natural ground: plane + sculpt, ignoring levelled pads and swale cuts (used for hydrology-style rules) */
+  groundAt(x: number, z: number): number
   /** unit normal */
   normalAt(x: number, z: number): [number, number, number]
   /** slope in degrees and downhill compass bearing */
@@ -163,7 +165,9 @@ export function createTerrain(site: SiteConfig, sculpt: SculptGrid | null = null
     return { slopeDeg: Math.atan(mag) / D2R, aspectDeg: mag < 1e-9 ? 0 : az }
   }
 
-  return { site, sculpt, pads, cuts, heightAt, baseHeightAt: base, normalAt, slopeAt }
+  const groundAt = (x: number, z: number) => base(x, z) + sampleSculpt(x, z)
+
+  return { site, sculpt, pads, cuts, groundAt, heightAt, baseHeightAt: base, normalAt, slopeAt }
 }
 
 /** Zero border nodes so the plot boundary stays exact. */

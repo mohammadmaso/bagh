@@ -34,7 +34,40 @@ export const dynEn: Record<string, string> = {
   'q.trees': 'Trees', 'q.hives': 'Hives', 'q.coops': 'Coops', 'q.siteFence': 'Site fence (perimeter minus gates)',
 }
 
+Object.assign(dynEn, {
+  'tr.sculpt': 'Sculpt brushes', 'tr.mode': 'Brush', 'tr.raise': 'Raise', 'tr.lower': 'Lower', 'tr.smooth': 'Smooth', 'tr.flatten': 'Flatten', 'tr.radius': 'Radius (m)', 'tr.strength': 'Strength',
+  'tr.sculptHint': 'Drag on the terrain. Flatten levels to the height where you start the stroke. The plot boundary stays exact. Each stroke is one undo step.', 'tr.reset': 'Reset sculpting',
+  'tr.pad': 'Level pads', 'tr.padHint': 'Houses, coops, tanks and sheds level their own pad automatically (cut & fill balanced on the slope). Add a free-standing graded platform:', 'tr.addPad': 'Add level pad',
+  'tr.terraces': 'Terrace generator', 'tr.terraceHint': 'Cuts level treads at multiples of the wall height with retaining walls along the contours inside the region (orange preview).', 'tr.wallH': 'Retaining-wall height (m)',
+  'tr.preview': '{walls} walls · cut {cut} m³ · fill {fill} m³', 'tr.generate': 'Generate terraces',
+})
+
+Object.assign(dynEn, {
+  'img.local': 'Everything stays on this device. Photos are downscaled and stored inside the project.', 'img.addOverlay': 'Top-down photo / satellite screenshot', 'img.addPin': 'Ground-level photo (pin)', 'img.addSky': '360° sky photo',
+  'img.none': 'No reference imagery yet.', 'img.visible': 'Visible', 'img.opacity': 'Opacity', 'img.width': 'Width (m)', 'img.rotation': 'Rotation (°)', 'img.calibrate': 'Calibrate (two points)',
+  'img.view': 'View', 'img.move': 'Move pin', 'img.remove': 'Remove', 'img.placePin': 'Click the terrain to place the photo pin',
+  'img.calibHelp': 'Click two recognisable points on the photo (e.g. two fence corners): A then B. Next you will click the same two places on the 3D terrain.', 'img.next': 'Next: click them in the 3D view',
+  'img.clickA': 'Click point A on the terrain (same place as A in the photo)',
+})
+Object.assign(dynEn, {
+  'pl.new': 'New empty plan', 'pl.duplicate': 'Duplicate current plan', 'pl.rename': 'Rename', 'pl.delete': 'Delete plan', 'pl.compare': 'Compare side by side',
+  'pl.compareHint': 'Switch plans with the radio buttons. ⇄ shows another plan beside the active one (same camera).', 'pl.trees': 'Trees', 'pl.beds': 'Beds', 'pl.bedArea': 'Bed area m²', 'pl.hives': 'Hives', 'pl.coops': 'Coops',
+  'pl.paths': 'Paths m', 'pl.tanks': 'Tank litres', 'pl.errors': 'Errors', 'pl.warnings': 'Warnings', 'pl.active': 'Active', 'bm.views': 'Views', 'bm.save': 'Save current view…', 'bm.name': 'Name this view', 'bm.delete': 'Delete view', 'bm.none': 'No saved views',
+})
 export const dynFa: Record<string, string> = {
+  'pl.new': 'طرح خالی جدید', 'pl.duplicate': 'تکثیر طرح فعلی', 'pl.rename': 'تغییر نام', 'pl.delete': 'حذف طرح', 'pl.compare': 'مقایسه کنار هم',
+  'pl.compareHint': 'با دکمه‌های رادیویی طرح را عوض کنید. ⇄ طرح دیگری را کنار طرح فعال (با همان دوربین) نشان می‌دهد.', 'pl.trees': 'درختان', 'pl.beds': 'باغچه‌ها', 'pl.bedArea': 'مساحت باغچه م²', 'pl.hives': 'کندوها', 'pl.coops': 'مرغدانی‌ها',
+  'pl.paths': 'مسیرها م', 'pl.tanks': 'لیتر مخزن', 'pl.errors': 'خطاها', 'pl.warnings': 'هشدارها', 'pl.active': 'فعال', 'bm.views': 'نماها', 'bm.save': 'ذخیره نمای فعلی…', 'bm.name': 'نام این نما', 'bm.delete': 'حذف نما', 'bm.none': 'نمای ذخیره‌شده‌ای نیست',
+  'img.local': 'همه چیز روی همین دستگاه می‌ماند. تصاویر کوچک‌سازی و درون پروژه ذخیره می‌شوند.', 'img.addOverlay': 'عکس هوایی / اسکرین‌شات ماهواره', 'img.addPin': 'عکس سطح زمین (پین)', 'img.addSky': 'عکس ۳۶۰ درجه آسمان',
+  'img.none': 'هنوز تصویر مرجعی نیست.', 'img.visible': 'نمایان', 'img.opacity': 'شفافیت', 'img.width': 'عرض (م)', 'img.rotation': 'چرخش (°)', 'img.calibrate': 'کالیبراسیون (دو نقطه)',
+  'img.view': 'نمایش', 'img.move': 'جابه‌جایی پین', 'img.remove': 'حذف', 'img.placePin': 'برای قرار دادن پین عکس روی زمین کلیک کنید',
+  'img.calibHelp': 'دو نقطه قابل تشخیص روی عکس را (مثلاً دو گوشه حصار) کلیک کنید: A و سپس B. بعد همان دو مکان را روی زمین سه‌بعدی کلیک می‌کنید.', 'img.next': 'بعدی: کلیک در نمای سه‌بعدی',
+  'img.clickA': 'نقطه A را روی زمین کلیک کنید (همان جای A در عکس)',
+  'tr.sculpt': 'قلم‌های شکل‌دهی', 'tr.mode': 'قلم', 'tr.raise': 'بالا بردن', 'tr.lower': 'پایین بردن', 'tr.smooth': 'صاف‌کردن نرم', 'tr.flatten': 'تراز کردن', 'tr.radius': 'شعاع (متر)', 'tr.strength': 'شدت',
+  'tr.sculptHint': 'روی زمین بکشید. «تراز» به ارتفاع نقطه شروع می‌رسد. مرز زمین دقیق می‌ماند. هر کشش یک مرحله واگرد است.', 'tr.reset': 'بازنشانی شکل‌دهی',
+  'tr.pad': 'سکوهای تراز', 'tr.padHint': 'خانه، مرغدانی، مخزن و انبار سکوی خود را خودکار تراز می‌کنند (خاک‌برداری و ریختن متعادل). سکوی مستقل اضافه کنید:', 'tr.addPad': 'افزودن سکوی تراز',
+  'tr.terraces': 'سازنده تراس', 'tr.terraceHint': 'در ناحیه، پله‌های تراز در مضرب ارتفاع دیوار و دیوارهای حائل در امتداد منحنی‌های تراز می‌سازد (پیش‌نمایش نارنجی).', 'tr.wallH': 'ارتفاع دیوار حائل (متر)',
+  'tr.preview': '{walls} دیوار · خاک‌برداری {cut} م³ · خاک‌ریزی {fill} م³', 'tr.generate': 'ساخت تراس‌ها',
   'an.title': 'تحلیل', 'an.sun': 'نقشه ساعات آفتاب', 'an.run': 'اجرای تحلیل', 'an.running': 'در حال محاسبه…', 'an.stale': 'طرح یا زمان از آخرین اجرا تغییر کرده — دوباره اجرا کنید.',
   'an.preset.today': 'تاریخ انتخابی', 'an.preset.spring': 'اعتدال بهاری', 'an.preset.summer': 'انقلاب تابستانی', 'an.preset.autumn': 'اعتدال پاییزی', 'an.preset.winter': 'انقلاب زمستانی',
   'an.legend': 'ساعات آفتاب مستقیم', 'an.layers': 'لایه‌های نقشه', 'an.layer.none': 'هیچ', 'an.layer.sun': 'ساعات آفتاب', 'an.layer.slope': 'شیب', 'an.layer.flow': 'جریان آب', 'an.layer.contours': 'منحنی تراز (۰٫۵ متر)',
