@@ -139,3 +139,12 @@ button { cursor: pointer; }
 .menu { position: absolute; top: 110%; inset-inline-start: 0; z-index: 30; min-width: 210px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 4px; }
 .menu-row { display: flex; gap: 2px; } .menu-row button { border: 0; background: transparent; padding: 5px 9px; border-radius: 6px; text-align: start; } .menu-row button:first-child { flex: 1; }
 .menu-row button:hover { background: var(--panel-2); } .menu-row.save input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; }
+
+.tour { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
+.tour-ring { position: fixed; border: 3px solid #ffd54a; border-radius: 10px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.45); pointer-events: none; transition: all .25s; }
+.tour-card { position: fixed; width: 330px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 14px; pointer-events: auto; }
+.tour-card p { margin: 6px 0 8px; line-height: 1.5; }
+
+.menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; } .menu > button { text-align: start; border: 0; background: transparent; padding: 6px 10px; border-radius: 6px; white-space: nowrap; } .menu > button:hover { background: var(--panel-2); }
+.save-ind { font-size: 11px; color: var(--muted); white-space: nowrap; } .save-ind.error { color: var(--danger); }
+kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; font-size: 11px; }

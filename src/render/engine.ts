@@ -332,6 +332,36 @@ export class Engine {
     this.dirty = true
   }
 
+  private captureSaved: { pr: number } | null = null
+  /** during capture, hide in-scene helpers (selection decals etc. live in layers flagged `overlayOnly`). */
+  setCaptureMode(on: boolean) {
+    for (const l of this.layers) if ((l as any).overlayOnly || l.group.name === 'overlay') l.group.visible = !on
+    this.capturing = on
+  }
+  capturing = false
+
+  /** Resize the drawing buffer to exactly w×h (pixel ratio 1) for high-resolution export. */
+  renderToSize(w: number, h: number) {
+    this.captureSaved = { pr: this.renderer.getPixelRatio() }
+    this.renderer.setPixelRatio(1)
+    this.renderer.setSize(w, h, false)
+    this.composer?.setSize(w, h, false)
+    const a = w / h
+    if (this.activeCamera === this.camera) { this.camera.aspect = a; this.camera.updateProjectionMatrix() }
+    else { const o = this.orthoCamera; const hh = (o.top - o.bottom) / 2; o.left = -hh * a; o.right = hh * a; o.updateProjectionMatrix() }
+  }
+
+  renderOnce() {
+    this.controls.update()
+    if (this.composer) this.composer.render(0.016)
+    else this.renderer.render(this.scene, this.activeCamera)
+  }
+
+  restoreSize() {
+    this.captureSaved = null
+    this.resize()
+  }
+
   setSectionX(x: number) {
     this.sectionX = x
     this.applySectionClip()
@@ -385,6 +415,7 @@ export class Engine {
     const ctx = this.ctx
     for (const l of this.layers) l.frame?.(dt, this.time, ctx)
     for (const f of this.onFrame) f(dt)
+    if (this.capturing) return
     if (this.composer) this.composer.render(dt)
     else this.renderer.render(this.scene, this.activeCamera)
     this.frames++

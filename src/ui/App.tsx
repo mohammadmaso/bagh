@@ -14,6 +14,8 @@ import { QuantitiesPanel } from './QuantitiesPanel'
 import { TerrainPanel } from './TerrainPanel'
 import { ImagesPanel, ImageViewer } from './ImagesPanel'
 import { PlansPanel } from './PlansPanel'
+import { FileMenu, HelpMenu, SaveIndicator } from './FileMenu'
+import { Tour } from './Tour'
 import { ComparePane } from './Viewport'
 import { useAnalysis } from '../store/analysis'
 
@@ -39,6 +41,8 @@ export function App() {
   const canRedo = useStore((s) => s.future.length > 0)
   const [tab, setTab] = useState<PanelId>('library')
   const [showRight, setShowRight] = useState(true)
+  const [tour, setTour] = useState(false)
+  useEffect(() => { if (!ui.tourDone) { const id = setTimeout(() => setTour(true), 1200); return () => clearTimeout(id) } }, [ui.tourDone])
   const issueCount = useAnalysis((s) => s.violations.filter((v) => v.severity !== 'info').length)
   useShortcuts()
 
@@ -53,8 +57,11 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <h1>🌿 {t('appName')}</h1>
+        <FileMenu />
+        <HelpMenu onTour={() => setTour(true)} />
         <button className="btn" onClick={undo} disabled={!canUndo} aria-label={t('btn.undo')} title="Ctrl+Z">↶</button>
         <button className="btn" onClick={redo} disabled={!canRedo} aria-label={t('btn.redo')} title="Ctrl+Shift+Z">↷</button>
+        <SaveIndicator />
         <div className="spacer" />
         <span className="seg" role="group" aria-label={t('ui.quality')}>
           {(['low', 'medium', 'high', 'ultra'] as const).map((q) => (
@@ -67,12 +74,12 @@ export function App() {
       </header>
       <div className="main">
         <aside className="side" aria-label="Panels">
-          <div className="tabs" role="tablist">
+          <div className="tabs" role="tablist" data-tour="tabs">
             {LEFT_TABS.map((x) => (
               <button key={x.id} className="tab" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)}>{t(x.label)}{x.id === 'rules' && issueCount > 0 && <span className="tab-count">{issueCount}</span>}</button>
             ))}
           </div>
-          <div className="panel-body" role="tabpanel">{current.render()}</div>
+          <div className="panel-body" role="tabpanel" data-tour={tab === 'library' ? 'library' : undefined}>{current.render()}</div>
         </aside>
         <div className="center">
           <Toolbar />
@@ -90,6 +97,7 @@ export function App() {
       </div>
       <TimeBar />
       <ImageViewer />
+      <Tour open={tour} onClose={() => setTour(false)} />
     </div>
   )
 }
