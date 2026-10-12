@@ -11,3 +11,10 @@ Every decision made where the brief left a choice. Edit values in `src/data/*` o
 7. **Horizon profile**: default ridge elevation angles per azimuth are guesses for an Alborz foothill site (higher north, lower south). Edit in Site Setup.
 8. **Surrounding landscape**: procedural ridges (not real DEM data).
 9. **Plant data**: approximate defaults for 400–800 m Alborz north-slope conditions; flagged "approximate – verify" in the UI.
+10. **"Tall trees on the north side of beds"**: in the northern hemisphere shade falls to the north, so the rule warns when a tall tree (≥ 4 m mature, configurable) is *south* of a bed within its shadow reach (1.8 × height); the message says "put tall trees north of beds".
+11. **Livestock/compost runoff** uses the *natural ground* (pads ignored) so a coop on a levelled pad still counts as uphill; a 70° cone around the downhill direction and 25 m reach by default.
+12. **Fence opacity in the sun analysis** is 12 % (wire mesh); gates likewise.
+13. **Neighbours/forest** are decorative context (no shading); only the editable horizon profile blocks sun.
+14. **Example layout** loads into its own plan ("Example layout") so it can be deleted without touching your work.
+15. **Quality auto-selection** runs a ~40-frame benchmark after load and picks Low/Medium/High/Ultra; any manual choice or `?q=` disables it.
+16. **Scale/units**: metres everywhere; plan PDF auto-picks the largest standard scale that fits (1:150 on A3 for this plot).
