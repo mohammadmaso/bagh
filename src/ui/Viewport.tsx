@@ -4,6 +4,8 @@ import { ObjectsLayer } from '../render/objectsLayer'
 import { OverlayLayer } from '../render/overlayLayer'
 import { SectionLayer } from '../render/sectionLayer'
 import { GrassLayer } from '../render/grassLayer'
+import { startAnalysisController, useAnalysis } from '../store/analysis'
+import { startOverlayController } from '../render/analysisOverlay'
 import { Interaction } from '../render/interaction'
 import { addObject, useStore, activeScenario } from '../store/store'
 import * as actions from '../store/actions'
@@ -28,6 +30,9 @@ export function Viewport() {
     engine.addLayer(overlay)
     engine.addLayer(new SectionLayer())
     interaction = new Interaction(engine, objects, overlay, stage.current!)
+    useAnalysis.subscribe(() => overlay.invalidate(engine.ctx))
+    startAnalysisController()
+    startOverlayController()
     ;(window as any).__engine = engine
     ;(window as any).__objects = objects
     ;(window as any).__overlay = overlay

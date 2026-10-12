@@ -8,10 +8,17 @@ import { PropertiesPanel } from './PropertiesPanel'
 import { TimeBar } from './TimeBar'
 import { Toolbar } from './Toolbar'
 import { useShortcuts } from './shortcuts'
+import { AnalysisPanel } from './AnalysisPanel'
+import { RulesPanel } from './RulesPanel'
+import { QuantitiesPanel } from './QuantitiesPanel'
+import { useAnalysis } from '../store/analysis'
 
-type PanelId = 'library' | 'site'
+type PanelId = 'library' | 'site' | 'analysis' | 'rules' | 'quantities'
 const LEFT_TABS: { id: PanelId; label: Key; render: () => ReactNode }[] = [
   { id: 'library', label: 'panel.library', render: () => <LibraryPanel /> },
+  { id: 'analysis', label: 'panel.analysis', render: () => <AnalysisPanel /> },
+  { id: 'rules', label: 'panel.rules', render: () => <RulesPanel /> },
+  { id: 'quantities', label: 'panel.quantities', render: () => <QuantitiesPanel /> },
   { id: 'site', label: 'panel.site', render: () => <SitePanel /> },
 ]
 
@@ -25,6 +32,7 @@ export function App() {
   const canRedo = useStore((s) => s.future.length > 0)
   const [tab, setTab] = useState<PanelId>('library')
   const [showRight, setShowRight] = useState(true)
+  const issueCount = useAnalysis((s) => s.violations.filter((v) => v.severity !== 'info').length)
   useShortcuts()
 
   useEffect(() => {
@@ -54,7 +62,7 @@ export function App() {
         <aside className="side" aria-label="Panels">
           <div className="tabs" role="tablist">
             {LEFT_TABS.map((x) => (
-              <button key={x.id} className="tab" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)}>{t(x.label)}</button>
+              <button key={x.id} className="tab" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)}>{t(x.label)}{x.id === 'rules' && issueCount > 0 && <span className="tab-count">{issueCount}</span>}</button>
             ))}
           </div>
           <div className="panel-body" role="tabpanel">{current.render()}</div>

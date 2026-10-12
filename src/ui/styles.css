@@ -110,3 +110,15 @@ button { cursor: pointer; }
 
 .timebar .row.extra { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .timebar .row.extra .btn, .timebar .row.extra .seg { flex: none; }
+
+.legend { margin: 8px 0; } .legend .ramp { height: 12px; border-radius: 6px; border: 1px solid var(--line); }
+.legend .ticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+.chip { display: inline-flex; align-items: center; gap: 4px; margin: 2px 8px 2px 0; font-size: 12px; } .chip i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.report th { font-size: 11px; color: var(--muted); font-weight: 500; text-align: end; } .report th:first-child { text-align: start; }
+.clickable { cursor: pointer; } .clickable:hover { background: var(--panel-2); }
+.viol-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.viol { width: 100%; text-align: start; display: flex; flex-direction: column; gap: 2px; padding: 7px 9px; border: 1px solid var(--line); border-inline-start-width: 4px; border-radius: 8px; background: var(--panel-2); }
+.sev-error .viol { border-inline-start-color: var(--danger); } .sev-warning .viol { border-inline-start-color: var(--warn); } .sev-info .viol { border-inline-start-color: #4a8bd0; }
+.viol span { color: var(--muted); font-size: 12px; }
+.rule-edit { border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; padding: 6px 10px; } .rule-edit legend { font-weight: 600; padding: 0 4px; }
+.hint.ok { color: var(--ok); }

@@ -1,5 +1,6 @@
 import type { SiteConfig, Vec2 } from './types'
 import { DEFAULT_SITE } from '../data/site'
+import type { RuleConfig } from '../data/rules'
 
 export const SCHEMA_VERSION = 1
 
@@ -53,6 +54,8 @@ export interface Project {
   activeScenarioId: string
   images: ReferenceImage[]
   groups: Record<string, { id: string; name: string }>
+  ruleConfig: RuleConfig
+  bookmarks: { id: string; name: string; pos: number[]; target: number[]; view: string; zoom?: number }[]
 }
 
 export function emptyScenario(id: string, name: string): Scenario {
@@ -71,6 +74,8 @@ export function newProject(): Project {
     activeScenarioId: s.id,
     images: [],
     groups: {},
+    ruleConfig: {},
+    bookmarks: [],
   }
 }
 
@@ -97,6 +102,8 @@ export function migrateProject(raw: unknown): Project {
   out.site = { ...base.site, ...(out.site ?? {}) }
   out.images ??= []
   out.groups ??= {}
+  out.ruleConfig ??= {}
+  out.bookmarks ??= []
   if (!out.scenarios?.[out.activeScenarioId]) {
     out.activeScenarioId = out.scenarioOrder?.[0] ?? Object.keys(out.scenarios)[0]
   }

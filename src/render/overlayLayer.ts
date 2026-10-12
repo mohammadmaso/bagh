@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import type { EngineContext, EngineLayer } from './engine'
 import { activeScenario, useStore } from '../store/store'
+import { useAnalysis } from '../store/analysis'
 import { CATALOG_BY_ID } from '../data/catalog'
 import { shapeOf } from '../core/footprint'
 import { computeCollisions } from '../core/collision'
@@ -39,7 +40,8 @@ export class OverlayLayer implements EngineLayer {
     const sc = activeScenario(ctx.project)
     const objs = sc.order.map((id) => sc.objects[id]).filter(Boolean)
     const rev = useStore.getState().rev
-    const key = `${rev}|${ctx.ui.selection.join(',')}|${ctx.ui.hoverId}|${ctx.ui.time.ageYears}|${ctx.terrainRev}`
+    const viol = ctx.ui.showRules ? useAnalysis.getState().violations : []
+    const key = `${rev}|${ctx.ui.selection.join(',')}|${ctx.ui.hoverId}|${ctx.ui.time.ageYears}|${ctx.terrainRev}|${ctx.ui.showRules}|${viol.map((v) => v.id + v.severity).join(';')}`
     if (key === this.lastKey) return
     if (rev !== this.lastRev) { this.collisions = computeCollisions(objs, ctx.project.site); this.lastRev = rev }
     this.lastKey = key
@@ -56,6 +58,33 @@ export class OverlayLayer implements EngineLayer {
       if (!bad.has(o.id)) continue
       const s = shapeOf(o)
       if (s) this.dynamic.add(fillDecal(s, t, '#ff2d2d', 0.38))
+    }
+    // rule violations: coloured rings by worst severity
+    if (ui.showRules) {
+      const worst = new Map<string, string>()
+      const rank: Record<string, number> = { error: 3, warning: 2, info: 1 }
+      for (const v of useAnalysis.getState().violations) for (const id of v.objectIds.slice(0, 1)) {
+        const cur = worst.get(id)
+        if (!cur || rank[v.severity] > rank[cur]) worst.set(id, v.severity)
+      }
+      for (const [id, sev] of worst) {
+        const o = objs.find((x) => x.id === id)
+        const s = o && shapeOf(o)
+        if (!s) {
+          if (o?.points) this.dynamic.add(lineDecal(o.points, t, sev === 'error' ? '#ff4d4d' : sev === 'warning' ? '#ffb020' : '#4aa3ff', 0.22, 0.09))
+          continue
+        }
+        const col = sev === 'error' ? '#ff4d4d' : sev === 'warning' ? '#ffb020' : '#4aa3ff'
+        const inflated: Shape = s.type === 'circle' ? { ...s, r: s.r + 0.35 } : { ...s, w: s.w + 0.7, d: s.d + 0.7 }
+        this.dynamic.add(outlineDecal(inflated, t, col, 0.2, 0.08))
+        // floating pin so issues are visible from far away
+        const it = CATALOG_BY_ID[o!.type]
+        const pin = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.7, 12), new THREE.MeshBasicMaterial({ color: col, depthTest: false, transparent: true, opacity: 0.95, toneMapped: false }))
+        pin.rotation.x = Math.PI
+        pin.position.set(o!.x, t.heightAt(o!.x, o!.z) + Math.min(4.5, Math.max(1.6, it?.height ?? 1.6)) + 0.6, o!.z)
+        pin.renderOrder = 30
+        this.dynamic.add(pin)
+      }
     }
     // selection
     for (const id of ui.selection) {
@@ -104,6 +133,9 @@ export class OverlayLayer implements EngineLayer {
     if (draft) lineOf(draft, '#ffd54a')
     if (measure) lineOf(measure, '#40c4ff')
   }
+
+  /** force a rebuild on the next sync (used when external state like rule results changes) */
+  invalidate(ctx: EngineContext) { this.lastKey = ''; this.sync(ctx) }
 
   clearGhost(ctx: EngineContext) {
     this.setGhost(ctx, { obj: null, draft: null, measure: null })

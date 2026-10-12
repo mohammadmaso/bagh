@@ -1,0 +1,20 @@
+import { chromium } from '@playwright/test'
+import fs from 'node:fs'
+const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] })
+const page = await browser.newPage({ viewport: { width: 1500, height: 900 } })
+const logs = []
+page.on('console', (m) => { if (!['debug', 'info', 'log'].includes(m.type())) logs.push(m.type() + ': ' + m.text()) })
+page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message))
+await page.goto(process.env.URL ?? 'http://localhost:5173/')
+await page.waitForFunction(() => window.__engine && window.__garden)
+await page.evaluate(`(async()=>{${fs.readFileSync('scripts/analysis-demo.js', 'utf8')}})()`)
+await page.getByRole('tab', { name: 'Analysis' }).click()
+await page.getByRole('button', { name: 'Run analysis' }).click()
+await page.waitForFunction(() => !document.querySelector('progress'), null, { timeout: 120000 }).catch(() => {})
+await page.waitForTimeout(3000)
+await page.screenshot({ path: 'shots/analysis_sun.png' })
+await page.getByRole('tab', { name: /Rules/ }).click()
+await page.waitForTimeout(2500)
+await page.screenshot({ path: 'shots/analysis_rules.png' })
+console.log(logs.slice(0, 20).join('\n'))
+await browser.close()
