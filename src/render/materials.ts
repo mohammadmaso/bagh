@@ -30,7 +30,7 @@ function create() {
     galvanised: new THREE.MeshStandardMaterial({ color: 0xa9b0b4, roughness: 0.42, metalness: 0.85 }),
     gateGreen: new THREE.MeshStandardMaterial({ color: 0x2f4a33, roughness: 0.5, metalness: 0.4 }),
     wire: new THREE.MeshStandardMaterial({
-      map: tiled(wire, 1 / 0.3, 1 / 0.3), transparent: true, alphaTest: 0.05, side: THREE.DoubleSide, roughness: 0.4, metalness: 0.8, depthWrite: false,
+      map: tiled(wire, 1 / 0.3, 1 / 0.3), transparent: true, opacity: 0.6, alphaTest: 0.05, side: THREE.DoubleSide, roughness: 0.5, metalness: 0.3, depthWrite: false,
     }),
     gravel: new THREE.MeshStandardMaterial({ map: tiled(gravel, 1 / 1.5, 1 / 1.5), roughness: 1 }),
     bark: new THREE.MeshStandardMaterial({ map: tiled(bark, 1, 1), roughness: 0.95 }),

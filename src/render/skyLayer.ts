@@ -38,6 +38,8 @@ export class SkyLayer {
       u.mieCoefficient.value = 0.004
       u.mieDirectionalG.value = 0.82
     }
+    this.envSky.material.uniforms.showSunDisc.value = 0 // the sun is a real shadow-casting light; keep it out of the IBL
+    this.envSky.material.uniforms.mieCoefficient.value = 0.0012
     this.envScene.add(this.envSky)
     this.group.add(this.sky, this.sun, this.sun.target, this.hemi)
     this.sun.castShadow = true
@@ -71,7 +73,7 @@ export class SkyLayer {
     this.sun.intensity = 3.4 * visible * lerp(0.35, 1, elevFactor) * (el > 0 ? 1 : 0)
 
     // sky light
-    this.hemi.intensity = lerp(0.04, 0.55, day)
+    this.hemi.intensity = lerp(0.02, 0.14, day)
     this.hemi.color.setRGB(lerp(0.2, 0.62, day), lerp(0.25, 0.78, day), lerp(0.4, 1.0, day))
     this.hemi.groundColor.setRGB(lerp(0.04, 0.34, day), lerp(0.05, 0.38, day), lerp(0.04, 0.2, day))
 

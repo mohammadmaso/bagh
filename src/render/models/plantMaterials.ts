@@ -78,12 +78,12 @@ function getBlossomAtlas() {
   const [cc, cx] = mk(), [ca, ax] = mk()
   cx.fillStyle = '#fff'; cx.fillRect(0, 0, S, S); ax.fillStyle = '#000'; ax.fillRect(0, 0, S, S)
   const rnd = mulberry32(5)
-  for (let i = 0; i < 9; i++) {
-    const x = 20 + rnd() * 88, y = 20 + rnd() * 88
+  for (let i = 0; i < 16; i++) {
+    const x = 16 + rnd() * 96, y = 16 + rnd() * 96
     for (const [ctx, mask] of [[cx, false], [ax, true]] as const) {
       ctx.fillStyle = mask ? '#fff' : `rgb(${235 + rnd() * 20},${225 + rnd() * 25},${225 + rnd() * 25})`
       for (let p = 0; p < 5; p++) {
-        ctx.beginPath(); ctx.ellipse(x + Math.cos((p / 5) * 6.283) * 5, y + Math.sin((p / 5) * 6.283) * 5, 5, 3.2, (p / 5) * 6.283, 0, 6.283); ctx.fill()
+        ctx.beginPath(); ctx.ellipse(x + Math.cos((p / 5) * 6.283) * 6, y + Math.sin((p / 5) * 6.283) * 6, 6.5, 4.2, (p / 5) * 6.283, 0, 6.283); ctx.fill()
       }
       if (!mask) { ctx.fillStyle = '#d9b44a'; ctx.beginPath(); ctx.arc(x, y, 1.8, 0, 6.283); ctx.fill() }
     }
@@ -169,7 +169,7 @@ export function getPlantMaterials(sp: PlantSpecies): PlantMaterialSet {
     float am = uDecid > 0.5 ? clamp(uAutumnMix * (0.35 + vRand * 1.2), 0.0, 1.0) : 0.0;
     vec3 tint = mix(uLeaf, uAutumn, am);
     tint *= 0.85 + 0.3 * fract(vRand * 7.31);
-    diffuseColor.rgb *= tint * 2.1;
+    diffuseColor.rgb *= tint * 1.65;
     `, 'uniform vec3 uLeaf; uniform vec3 uAutumn; uniform float uDecid; uniform float uLeafCover; uniform float uAutumnMix;')
 
   const leafDepth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaMap: atlas.alpha, alphaTest: 0.5, side: THREE.DoubleSide })
@@ -196,9 +196,9 @@ export function getPlantMaterials(sp: PlantSpecies): PlantMaterialSet {
   const blob = new THREE.MeshStandardMaterial({ color: new THREE.Color(sp.leaf.color).multiplyScalar(0.8), roughness: 0.9 })
   blob.name = 'blob-' + sp.id
   blob.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, u, { uLeaf: leafColor, uAutumn: autumnColor, uDecid: deciduous })
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uLeafCover; uniform float uAutumnMix; uniform vec3 uLeaf; uniform vec3 uAutumn; uniform float uDecid;')
-      .replace('#include <color_fragment>', '#include <color_fragment>\n float am = uDecid > 0.5 ? uAutumnMix : 0.0; diffuseColor.rgb = mix(uLeaf, uAutumn, am) * 0.85 * (uDecid > 0.5 ? mix(0.35, 1.0, uLeafCover) : 1.0);')
+    Object.assign(sh.uniforms, u, { uLeaf: leafColor, uAutumn: autumnColor, uDecid: deciduous, uBlossomColor: { value: new THREE.Color(sp.blossom?.color ?? '#ffffff') } })
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uLeafCover; uniform float uAutumnMix; uniform vec3 uLeaf; uniform vec3 uAutumn; uniform float uDecid; uniform float uBlossom; uniform vec3 uBlossomColor;')
+      .replace('#include <color_fragment>', '#include <color_fragment>\n float am = uDecid > 0.5 ? uAutumnMix : 0.0; vec3 lc = mix(uLeaf, uAutumn, am) * 0.85 * (uDecid > 0.5 ? mix(0.35, 1.0, uLeafCover) : 1.0); diffuseColor.rgb = mix(lc, mix(lc, uBlossomColor, 0.75), uBlossom * 0.9);')
   }
 
   const set: PlantMaterialSet = { bark, leaf, leafDepth, blossom, blossomDepth, fruit, blob, u, species: sp }

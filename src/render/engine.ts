@@ -13,6 +13,7 @@ import { TerrainLayer } from './terrainLayer'
 import { buildFence, buildHouse, housePlacement } from './siteLayer'
 import { SkyLayer } from './skyLayer'
 import { QUALITY } from './quality'
+import { treeQualityScale } from './models/plantFactory'
 import { WalkController } from './walk'
 import type { ViewMode } from '../store/store'
 
@@ -158,7 +159,9 @@ export class Engine {
     const sun = sunAt(date, site.lat, site.lon)
     this.sky.shadowCenter.set(site.width / 2, this.terrain.heightAt(site.width / 2, site.depth / 2) + 2, site.depth / 2)
     this.sky.shadowRadius = Math.hypot(site.width, site.depth) / 2 + 4
-    this.sky.update(sun, site.horizon)
+    const sk = this.sky.update(sun, site.horizon)
+    this.scene.environment = this.sky.envRT?.texture ?? null
+    this.scene.environmentIntensity = 0.05 + 0.24 * sk.day
     this.lookCache = seasonLook(t.year, t.month, t.day, t.seasonMode, t.snow)
     const u = this.terrainLayer.uniforms
     u.uSeasonTint.value.set(...this.lookCache.groundTint)
@@ -187,6 +190,8 @@ export class Engine {
     const key = ui.quality + (this.renderer ? this.renderer.getPixelRatio() : '')
     if (key === this.lastQuality) return
     this.lastQuality = key
+    treeQualityScale.value = q.treeDetail
+    treeQualityScale.dist = 0.5 + q.treeDetail
     this.sky.setShadowMapSize(q.shadowMap)
     this.sky.sun.shadow.needsUpdate = true
     this.buildComposer()
@@ -219,7 +224,7 @@ export class Engine {
       } as any)
       effects.push(this.ssao)
     }
-    effects.push(new ToneMappingEffect({ mode: ToneMappingMode.AGX }))
+    effects.push(new ToneMappingEffect({ mode: ToneMappingMode.ACES_FILMIC }))
     composer.addPass(new EffectPass(this.activeCamera, ...effects))
     if (q.smaa) composer.addPass(new EffectPass(this.activeCamera, new SMAAEffect({ preset: SMAAPreset.HIGH })))
     this.composer = composer
@@ -308,6 +313,13 @@ export class Engine {
     }
     c.update()
     this.dirty = true
+    this.sync(true)
+  }
+
+  setSectionX(x: number) {
+    this.sectionX = x
+    this.applySectionClip()
+    this.sync(true)
   }
 
   /** Slice the scene at x = sectionX when in section view; sees the N–S profile of terrain & objects. */

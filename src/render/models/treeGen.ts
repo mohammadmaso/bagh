@@ -167,9 +167,9 @@ export function generateTree(sp: PlantSpecies, age: number, lod: 0 | 1 | 2, seed
   }
 
   // ---- blossom cards
-  if (sp.blossom && lod === 0) {
-    const n = Math.round(cardCount * 0.7)
-    const bw = Math.max(0.06, sp.blossom.size * 3.4) * Math.min(1, 0.5 + size.fraction)
+  if (sp.blossom && lod < 2) {
+    const n = Math.round(cardCount * (lod === 0 ? 0.7 : 1.0))
+    const bw = Math.max(0.12, sp.blossom.size * 7.5) * Math.min(1, 0.5 + size.fraction) * (lod === 0 ? 1 : 1.8)
     for (let i = 0; i < n; i++) {
       const c = placeInCrown()
       const p2 = c.p.clone().multiplyScalar(1.0).add(c.out.clone().multiplyScalar(cardW * 0.25))

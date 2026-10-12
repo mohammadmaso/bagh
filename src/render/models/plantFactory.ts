@@ -12,7 +12,7 @@ let tick = 0
 const MAX_CACHE = 160
 
 export const quantizeAge = (age: number) => Math.round(Math.max(0, age) * 2) / 2
-export const treeQualityScale = { value: 1 }
+export const treeQualityScale = { value: 1, dist: 1 }
 
 function getGeo(sp: PlantSpecies, ageQ: number, lod: 0 | 1 | 2, variant: number): TreeGeo {
   const key = `${sp.id}:${ageQ}:${lod}:${variant}:${treeQualityScale.value}`
@@ -42,7 +42,8 @@ export function buildTree(sp: PlantSpecies, age: number, variant: number): THREE
   const lod = new THREE.LOD()
   lod.name = 'tree-' + sp.id
   const geo0 = getGeo(sp, ageQ, 0, variant)
-  const levels: [0 | 1 | 2, number][] = [[0, 0], [1, 14 + geo0.canopy * 3.2], [2, 55 + geo0.canopy * 6]]
+  const ds = treeQualityScale.dist
+  const levels: [0 | 1 | 2, number][] = [[0, 0], [1, (28 + geo0.canopy * 5) * ds], [2, (90 + geo0.canopy * 9) * ds]]
   for (const [l, dist] of levels) {
     const g = l === 2 ? geo0 : getGeo(sp, ageQ, l, variant)
     const grp = new THREE.Group()

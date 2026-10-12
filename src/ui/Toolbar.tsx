@@ -1,4 +1,5 @@
 import { useStore } from '../store/store'
+import { engine } from '../render/engine'
 import { useT } from '../i18n'
 
 export function Toolbar() {
@@ -33,6 +34,11 @@ export function Toolbar() {
       <button className="btn" aria-pressed={ui.edgeSnap} onClick={() => setUI({ edgeSnap: !ui.edgeSnap })}>{t('snap.edges')}</button>
       <button className="btn" aria-pressed={ui.allowOverlap} onClick={() => setUI({ allowOverlap: !ui.allowOverlap })}>{t('snap.overlap')}</button>
       <button className="btn" aria-pressed={ui.showLabels} onClick={() => setUI({ showLabels: !ui.showLabels })}>{t('label.show')}</button>
+      {ui.view === 'section' && (
+        <label className="inl">{t('view.section.x')}
+          <input type="range" min={0} max={useStore.getState().project.site.width} step={0.5} defaultValue={engine.sectionX} onChange={(e) => engine.setSectionX(+e.target.value)} aria-label={t('view.section.x')} />
+        </label>
+      )}
       <div className="spacer" />
       <span className="seg" role="group" aria-label="View">
         {views.map((v, i) => (
