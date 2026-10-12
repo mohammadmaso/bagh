@@ -45,6 +45,14 @@ export interface UIState {
   sunHoursPreset: 'today' | 'spring' | 'summer' | 'autumn' | 'winter'
   walkSpeed: number
   cleanMode: boolean
+  gizmo: 'translate' | 'rotate' | 'scale'
+  /** transient on-canvas readout (length while drawing, measurements) */
+  hud: { text: string; x: number; y: number } | null
+  /** rect select in progress / info toasts */
+  toast: string | null
+  arrayDialog: boolean
+  contextMenu: { x: number; y: number; id: string | null } | null
+  hoverId: string | null
 }
 
 interface Store {
@@ -74,7 +82,7 @@ const defaultUI: UIState = {
   lang: 'en', persianDigits: false, theme: 'light', view: 'persp', tool: 'select', overlay: 'none',
   quality: 'medium', qualityAuto: true, selection: [], placingType: null, gridSnap: 0.5, edgeSnap: true,
   allowOverlap: false, showRules: true, panel: 'library', time: { ...DEFAULT_TIME, year: now.getFullYear() },
-  tourDone: false, showFlightCones: true, showLabels: true, sunHoursPreset: 'summer', walkSpeed: 1.6, cleanMode: false,
+  tourDone: false, showFlightCones: true, showLabels: true, sunHoursPreset: 'summer', walkSpeed: 1.6, cleanMode: false, gizmo: 'translate', hud: null, toast: null, arrayDialog: false, contextMenu: null, hoverId: null,
 }
 
 const HISTORY_LIMIT = 200

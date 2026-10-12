@@ -10,7 +10,7 @@ page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message))
 await page.goto(process.env.URL ?? 'http://localhost:4173/')
 await page.waitForSelector('canvas')
 await page.waitForTimeout(2500)
-if (js) { await page.evaluate(js); await page.waitForTimeout(2500) }
+if (js) { await page.evaluate(`(async()=>{${js}})()`); await page.waitForTimeout(2500) }
 await page.screenshot({ path: out })
 console.log(logs.filter((l) => !l.startsWith('log')).slice(0, 15).join('\n'))
 await browser.close()

@@ -34,6 +34,7 @@ export interface TerrainUniforms {
   uPlot: { value: THREE.Vector4 }
   uSnow: { value: number }
   uSeasonTint: { value: THREE.Vector3 } // multiplier (dry/autumn/spring)
+  uPlan: { value: number }
 }
 
 export class TerrainLayer {
@@ -55,6 +56,7 @@ export class TerrainLayer {
       uPlot: { value: new THREE.Vector4(0, 0, 33, 30) },
       uSnow: { value: 0 },
       uSeasonTint: { value: new THREE.Vector3(1, 1, 1) },
+      uPlan: { value: 0 },
     }
     const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.96, metalness: 0 })
     m.onBeforeCompile = (sh) => {
@@ -67,7 +69,7 @@ export class TerrainLayer {
 varying vec3 vWPos;
 uniform sampler2D tGrass; uniform sampler2D tNoise;
 uniform sampler2D uOverlay; uniform float uOverlayMix; uniform float uContours;
-uniform vec4 uPlot; uniform float uSnow; uniform vec3 uSeasonTint;`)
+uniform vec4 uPlot; uniform float uSnow; uniform vec3 uSeasonTint; uniform float uPlan;`)
         .replace('#include <map_fragment>', `
 vec2 wuv = vWPos.xz;
 float lowN = texture2D(tNoise, wuv * 0.011).g;
@@ -92,6 +94,18 @@ g = mix(g, vec3(0.10, 0.17, 0.07) * (0.7 + 0.6 * lowN), far * 0.75);
 g *= uSeasonTint;
 g = mix(g, vec3(0.9, 0.93, 0.98), uSnow * smoothstep(0.1, 0.5, lowN + 0.4));
 diffuseColor.rgb *= g;
+if (uPlan > 0.5) {
+  // drafting style: pale paper-green ground, 1 m / 5 m grid
+  vec3 paper = vec3(0.90, 0.93, 0.86);
+  diffuseColor.rgb = mix(paper, paper * vec3(0.93, 0.97, 0.9), midN * 0.5);
+  vec2 gp = vWPos.xz;
+  vec2 gw = fwidth(gp) * 1.0;
+  vec2 g1 = 1.0 - smoothstep(vec2(0.0), gw * 1.2, abs(fract(gp - 0.5) - 0.5));
+  vec2 g5 = 1.0 - smoothstep(vec2(0.0), gw * 1.6, abs(fract(gp / 5.0 - 0.5) - 0.5) * 5.0);
+  float inPlot = step(uPlot.x, vWPos.x) * step(vWPos.x, uPlot.z) * step(uPlot.y, vWPos.z) * step(vWPos.z, uPlot.w);
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.55, 0.6, 0.5), max(g1.x, g1.y) * 0.22 * inPlot);
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.35, 0.4, 0.33), max(g5.x, g5.y) * 0.5 * inPlot);
+}
 if (uOverlayMix > 0.0) {
   vec2 ouv = (vWPos.xz - uPlot.xy) / (uPlot.zw - uPlot.xy);
   if (ouv.x >= 0.0 && ouv.x <= 1.0 && ouv.y >= 0.0 && ouv.y <= 1.0) {
@@ -99,7 +113,7 @@ if (uOverlayMix > 0.0) {
     diffuseColor.rgb = mix(diffuseColor.rgb, o.rgb, o.a * uOverlayMix);
   }
 }
-if (uContours > 0.5) {
+if (uContours > 0.5 || uPlan > 0.5) {
   float h = vWPos.y / 0.5;
   float w = fwidth(h) * 1.2;
   float line = 1.0 - smoothstep(0.0, w, abs(fract(h - 0.5) - 0.5));

@@ -221,16 +221,21 @@ function wallShape(L: number, H: number, rise: number, openings: { cx: number; w
 }
 
 export function buildHouse(site: SiteConfig, terrain: Terrain): { group: THREE.Group; floorY: number } {
-  const M = mats()
-  const h: HouseDef = site.house
   const place = housePlacement(site, terrain)
-  const W = h.width, D = h.depth, T = 0.12
   const floorY = place.level + 0.25
+  const group = makeCabin(site.house)
+  group.position.set(place.cx, floorY, place.cz)
+  return { group, floorY }
+}
+
+/** Gable cabin centred on the origin with its floor at y = 0; front/door wall faces +z (south). */
+export function makeCabin(h: HouseDef): THREE.Group {
+  const M = mats()
+  const W = h.width, D = h.depth, T = 0.12
   const pitch = (h.roofPitchDeg * Math.PI) / 180
   const rise = (D / 2) * Math.tan(pitch)
   const group = new THREE.Group()
   group.name = 'house'
-  group.position.set(place.cx, floorY, place.cz)
 
   // foundation plinth
   const plinth = new THREE.Mesh(new THREE.BoxGeometry(W + 0.1, 0.55, D + 0.1), M.concrete)
@@ -338,5 +343,5 @@ export function buildHouse(site: SiteConfig, terrain: Terrain): { group: THREE.G
   step.position.set(h.door.wall === 'south' ? h.door.offset : 0, -0.18, D / 2 + 0.3)
   step.castShadow = step.receiveShadow = true
   group.add(step)
-  return { group, floorY }
+  return group
 }

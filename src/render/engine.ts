@@ -5,7 +5,7 @@ import {
   EffectComposer, RenderPass, EffectPass, NormalPass, SSAOEffect, SMAAEffect, ToneMappingEffect, ToneMappingMode, SMAAPreset,
 } from 'postprocessing'
 import { useStore, activeScenario, type UIState } from '../store/store'
-import { createTerrain, makeSculptGrid, type Terrain, type Pad } from '../core/terrain'
+import { createTerrain, makeSculptGrid, type Terrain, type Pad, type Cut } from '../core/terrain'
 import type { Project } from '../core/project'
 import { sunAt, siteLocalToDate } from '../core/sun'
 import { seasonLook } from '../core/season'
@@ -13,6 +13,8 @@ import { TerrainLayer } from './terrainLayer'
 import { buildFence, buildHouse, housePlacement } from './siteLayer'
 import { SkyLayer } from './skyLayer'
 import { QUALITY } from './quality'
+import { WalkController } from './walk'
+import type { ViewMode } from '../store/store'
 
 ;(THREE.BufferGeometry.prototype as any).computeBoundsTree = computeBoundsTree
 ;(THREE.BufferGeometry.prototype as any).disposeBoundsTree = disposeBoundsTree
@@ -32,6 +34,7 @@ export interface EngineContext {
   ui: UIState
   terrain: Terrain
   look: ReturnType<typeof seasonLook>
+  terrainRev: number
 }
 
 export class Engine {
@@ -51,6 +54,7 @@ export class Engine {
   private canvas!: HTMLCanvasElement
   private ro!: ResizeObserver
   private siteKey = ''
+  terrainRev = 0
   private dirty = true
   private lastQuality = ''
   time = 0
@@ -60,6 +64,11 @@ export class Engine {
   private unsub: (() => void) | null = null
   private lookCache!: ReturnType<typeof seasonLook>
   onFrame: Array<(dt: number) => void> = []
+  walk!: WalkController
+  view: ViewMode = 'persp'
+  private perspSaved: { pos: THREE.Vector3; target: THREE.Vector3 } | null = null
+  private anim: { t0: number; dur: number; from: { pos: THREE.Vector3; target: THREE.Vector3; zoom: number }; to: { pos: THREE.Vector3; target: THREE.Vector3; zoom: number }; cam: THREE.Camera; done?: () => void } | null = null
+  sectionX = 16.5
 
   init(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -93,6 +102,7 @@ export class Engine {
     this.ro.observe(canvas.parentElement ?? canvas)
     this.resize()
 
+    this.walk = new WalkController(this)
     this.unsub = useStore.subscribe(() => this.sync())
     this.sync()
     renderer.setAnimationLoop((t) => this.loop(t))
@@ -106,30 +116,35 @@ export class Engine {
 
   get ctx(): EngineContext {
     const s = useStore.getState()
-    return { engine: this, project: s.project, ui: s.ui, terrain: this.terrain, look: this.lookCache }
+    return { engine: this, project: s.project, ui: s.ui, terrain: this.terrain, look: this.lookCache, terrainRev: this.terrainRev }
   }
 
   /** collect pads from the site's house and from placed objects (extended by layers via `extraPads`). */
-  extraPads: () => Pad[] = () => []
+  extraPads: (base: Terrain) => Pad[] = () => []
+  extraCuts: () => Cut[] = () => []
 
   private sync(force = false) {
     const { project, ui } = useStore.getState()
     const site = project.site
     const t = ui.time
     // --- terrain / site geometry
-    const pads = this.extraPads()
-    const key = JSON.stringify([site, project.sculpt?.data ? project.sculpt.data.length + ':' + hashArr(project.sculpt.data) : 0, pads])
+    let sculptG = null
+    if (project.sculpt) {
+      sculptG = makeSculptGrid(site.width, site.depth, project.sculpt.res)
+      sculptG.data.set(project.sculpt.data)
+    }
+    const baseT = createTerrain(site, sculptG)
+    const pads = this.extraPads(baseT)
+    const cuts = this.extraCuts()
+    const key = JSON.stringify([site, project.sculpt?.data ? project.sculpt.data.length + ':' + hashArr(project.sculpt.data) : 0, pads, cuts])
     const geomChanged = key !== this.siteKey || force
     if (geomChanged) {
       this.siteKey = key
-      let sculpt = null
-      if (project.sculpt) {
-        sculpt = makeSculptGrid(site.width, site.depth, project.sculpt.res)
-        sculpt.data.set(project.sculpt.data)
-      }
-      const hp = housePlacement(site, createTerrain(site, sculpt))
+      const sculpt = sculptG
+      const hp = housePlacement(site, baseT)
       const housePad: Pad = { id: 'house', cx: hp.cx, cz: hp.cz, w: hp.w + 0.4, d: hp.d + 0.4, rotY: 0, level: hp.level, margin: 1.4 }
-      this.terrain = createTerrain(site, sculpt, [housePad, ...pads])
+      this.terrain = createTerrain(site, sculpt, [housePad, ...pads], cuts)
+      this.terrainRev++
       this.terrainLayer.rebuild(this.terrain)
       const m = this.terrainLayer.mesh as any
       m.geometry.disposeBoundsTree?.()
@@ -208,6 +223,99 @@ export class Engine {
     this.composer = composer
   }
 
+  /** Smoothly move the active camera (and orbit target). */
+  flyTo(pos: THREE.Vector3, target: THREE.Vector3, dur = 900, zoom?: number, done?: () => void) {
+    const cam = this.activeCamera
+    this.anim = {
+      t0: performance.now(), dur, cam, done,
+      from: { pos: cam.position.clone(), target: this.controls.target.clone(), zoom: (cam as THREE.OrthographicCamera).zoom ?? 1 },
+      to: { pos: pos.clone(), target: target.clone(), zoom: zoom ?? (cam as THREE.OrthographicCamera).zoom ?? 1 },
+    }
+  }
+
+  private stepAnim(now: number) {
+    const a = this.anim
+    if (!a) return
+    const k = Math.min(1, (performance.now() - a.t0) / a.dur)
+    const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2
+    a.cam.position.lerpVectors(a.from.pos, a.to.pos, e)
+    this.controls.target.lerpVectors(a.from.target, a.to.target, e)
+    if ((a.cam as THREE.OrthographicCamera).isOrthographicCamera) { (a.cam as THREE.OrthographicCamera).zoom = a.from.zoom + (a.to.zoom - a.from.zoom) * e; (a.cam as THREE.OrthographicCamera).updateProjectionMatrix() }
+    if (k >= 1) { this.anim = null; a.done?.() }
+    void now
+  }
+
+  getCameraState() {
+    return { pos: this.activeCamera.position.toArray(), target: this.controls.target.toArray(), view: this.view, zoom: (this.activeCamera as THREE.OrthographicCamera).zoom ?? 1 }
+  }
+
+  /** Switch between perspective / plan / section / walk. */
+  setView(mode: ViewMode) {
+    if (mode === this.view) return
+    const prev = this.view
+    if (prev === 'walk') this.walk.exit()
+    if (prev === 'persp') this.perspSaved = { pos: this.camera.position.clone(), target: this.controls.target.clone() }
+    this.view = mode
+    const site = useStore.getState().project.site
+    const cx = site.width / 2, cz = site.depth / 2, cy = this.terrain.heightAt(cx, cz)
+    const c = this.controls
+    c.enableRotate = mode === 'persp'
+    c.mouseButtons = mode === 'persp' ? { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN } : { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }
+    c.touches = mode === 'persp' ? { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN } : { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN }
+    this.renderer.clippingPlanes = []
+    this.renderer.localClippingEnabled = false
+    this.terrainLayer.uniforms.uPlan.value = mode === 'plan' ? 1 : 0
+    this.scene.fog = mode === 'plan' || mode === 'section' ? null : this.sky.fog
+    if (mode === 'persp') {
+      this.camera.up.set(0, 1, 0)
+      this.setCameraType(this.camera)
+      this.camera.near = 0.1; this.camera.updateProjectionMatrix()
+      c.minPolarAngle = 0; c.maxPolarAngle = Math.PI * 0.495
+      const s = this.perspSaved
+      this.camera.position.copy(s?.pos ?? new THREE.Vector3(-16, 11, 50)); c.target.copy(s?.target ?? new THREE.Vector3(16, 2.5, 14))
+      c.enabled = true
+    } else if (mode === 'plan') {
+      const o = this.orthoCamera
+      o.up.set(0, 0, -1)
+      this.setCameraType(o)
+      const span = Math.max(site.depth + 10, (site.width + 10) / Math.max(0.5, o.right / o.top))
+      o.top = span / 2; o.bottom = -span / 2; o.zoom = 1
+      this.resize()
+      o.position.set(cx, 600, cz)
+      c.target.set(cx, 0, cz)
+      c.minPolarAngle = 0; c.maxPolarAngle = 0.0001
+      o.near = -1000; o.far = 3000
+      c.enabled = true
+    } else if (mode === 'section') {
+      const o = this.orthoCamera
+      o.up.set(0, 1, 0)
+      this.setCameraType(o)
+      o.top = 14; o.bottom = -14; o.zoom = 1
+      this.resize()
+      o.position.set(site.width + 200, cy + 3, cz)
+      c.target.set(this.sectionX, cy + 3, cz)
+      c.minPolarAngle = Math.PI / 2; c.maxPolarAngle = Math.PI / 2
+      o.near = -1000; o.far = 3000
+      this.applySectionClip()
+      c.enabled = true
+    } else if (mode === 'walk') {
+      this.camera.up.set(0, 1, 0)
+      this.setCameraType(this.camera)
+      c.minPolarAngle = 0; c.maxPolarAngle = Math.PI
+      this.walk.enter()
+    }
+    c.update()
+    this.dirty = true
+  }
+
+  /** Slice the scene at x = sectionX when in section view; sees the N–S profile of terrain & objects. */
+  applySectionClip() {
+    if (this.view !== 'section') return
+    this.renderer.localClippingEnabled = true
+    this.renderer.clippingPlanes = [new THREE.Plane(new THREE.Vector3(-1, 0, 0), this.sectionX)]
+    this.controls.target.x = this.sectionX
+  }
+
   setCameraType(cam: THREE.Camera) {
     if (cam === this.activeCamera) return
     this.activeCamera = cam
@@ -241,7 +349,9 @@ export class Engine {
     const dt = Math.min(0.1, (t - this.lastT) / 1000)
     this.lastT = t
     this.time = t / 1000
-    this.controls.update()
+    this.stepAnim(t)
+    if (this.walk.active) this.walk.update(dt)
+    else this.controls.update()
     const ctx = this.ctx
     for (const l of this.layers) l.frame?.(dt, this.time, ctx)
     for (const f of this.onFrame) f(dt)

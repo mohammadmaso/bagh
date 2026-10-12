@@ -162,3 +162,43 @@ export function makeBarkTexture(size = 256, base: [number, number, number] = [92
   ctx.putImageData(img, 0, 0)
   return finish(c)
 }
+
+/** Irregular flagstone paving. */
+export function makePavingTexture(size = 512, seed = 21): THREE.CanvasTexture {
+  const [c, ctx] = canvas(size)
+  ctx.fillStyle = '#6b665c'; ctx.fillRect(0, 0, size, size)
+  const rnd = mulberry32(seed)
+  const cells = 7
+  const pts: [number, number][] = []
+  for (let i = 0; i < cells; i++) for (let j = 0; j < cells; j++) pts.push([(i + 0.15 + rnd() * 0.7) * (size / cells), (j + 0.15 + rnd() * 0.7) * (size / cells)])
+  const img = ctx.getImageData(0, 0, size, size)
+  const tone = pts.map(() => 0.8 + rnd() * 0.35)
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    let d1 = 1e9, d2 = 1e9, k = 0
+    for (let n = 0; n < pts.length; n++) for (const ox of [-size, 0, size]) for (const oy of [-size, 0, size]) {
+      const dx = pts[n][0] + ox - x, dy = pts[n][1] + oy - y
+      if (Math.abs(dx) > 120 || Math.abs(dy) > 120) continue
+      const d = dx * dx + dy * dy
+      if (d < d1) { d2 = d1; d1 = d; k = n } else if (d < d2) d2 = d
+    }
+    const edge = Math.sqrt(d2) - Math.sqrt(d1)
+    const i = (y * size + x) * 4
+    const g = edge < 3.5 ? 0.45 : tone[k] * (0.85 + fbm(x * 0.05, y * 0.05, 3, 3, 0) * 0.3)
+    img.data[i] = 150 * g; img.data[i + 1] = 146 * g; img.data[i + 2] = 136 * g; img.data[i + 3] = 255
+  }
+  ctx.putImageData(img, 0, 0)
+  return finish(c)
+}
+
+export function makeMulchTexture(size = 256, seed = 31): THREE.CanvasTexture {
+  const [c, ctx] = canvas(size)
+  ctx.fillStyle = '#4b3524'; ctx.fillRect(0, 0, size, size)
+  const rnd = mulberry32(seed)
+  for (let i = 0; i < size * 8; i++) {
+    const x = rnd() * size, y = rnd() * size, l = 3 + rnd() * 9, a = rnd() * 3.14
+    const k = 0.55 + rnd() * 0.8
+    ctx.strokeStyle = `rgb(${(95 * k) | 0},${(66 * k) | 0},${(44 * k) | 0})`; ctx.lineWidth = 1 + rnd() * 1.5
+    wrapLine(ctx, size, x, y, x + Math.cos(a) * l, y + Math.sin(a) * l)
+  }
+  return finish(c)
+}

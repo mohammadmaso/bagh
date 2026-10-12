@@ -50,3 +50,33 @@ describe('pads', () => {
     expect(t.heightAt(16, 25)).toBeCloseTo(createTerrain(DEFAULT_SITE).heightAt(16, 25), 9)
   })
 })
+
+import { growthFraction, plantSizeAt, inMonths } from '../src/core/growth'
+import { PLANTS } from '../src/data/plants'
+
+describe('growth', () => {
+  it('is monotonic 0..1', () => {
+    let prev = -1
+    for (let a = 0; a <= 40; a += 0.5) { const f = growthFraction(a, 10); expect(f).toBeGreaterThanOrEqual(prev); expect(f).toBeLessThanOrEqual(1); prev = f }
+    expect(growthFraction(0, 10)).toBe(0)
+    expect(growthFraction(10, 10)).toBeGreaterThan(0.8)
+  })
+  it('plant sizes: planted height at 0, near mature at maturity', () => {
+    const a = PLANTS.apple
+    expect(plantSizeAt(a, 0).height).toBeCloseTo(a.h0)
+    expect(plantSizeAt(a, 15).height).toBeGreaterThan(a.matureHeight * 0.9)
+    expect(plantSizeAt(PLANTS.walnut, 15).height).toBeLessThan(PLANTS.walnut.matureHeight * 0.8)
+  })
+  it('month ranges wrap', () => { expect(inMonths([11, 2], 1)).toBe(true); expect(inMonths([11, 2], 5)).toBe(false); expect(inMonths([4, 5], 4)).toBe(true) })
+})
+
+describe('swale cuts', () => {
+  it('digs a trench and builds a berm on the downhill side', () => {
+    const cut = { id: 's', pts: [{ x: 5, z: 15 }, { x: 25, z: 15 }], width: 1.2, depth: 0.4 }
+    const t0 = createTerrain(DEFAULT_SITE)
+    const t = createTerrain(DEFAULT_SITE, null, [], [cut])
+    expect(t.heightAt(15, 15)).toBeCloseTo(t0.heightAt(15, 15) - 0.4, 6)
+    expect(t.heightAt(15, 15.9)).toBeGreaterThan(t0.heightAt(15, 15.9)) // downhill (south) berm
+    expect(t.heightAt(15, 14.0)).toBeCloseTo(t0.heightAt(15, 14.0), 6) // uphill unchanged
+  })
+})

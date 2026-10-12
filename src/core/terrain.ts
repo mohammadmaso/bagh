@@ -48,10 +48,33 @@ export function padWeight(p: Pad, x: number, z: number): number {
   return t * t * (3 - 2 * t)
 }
 
+/** A swale (contour ditch): V-shaped trench with a soil berm on its downhill side. */
+export interface Cut {
+  id: string
+  pts: { x: number; z: number }[]
+  width: number
+  depth: number
+}
+
+function nearestOnPolyline(pts: { x: number; z: number }[], x: number, z: number) {
+  let best = Infinity, bx = 0, bz = 0
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i]
+    const dx = b.x - a.x, dz = b.z - a.z
+    const l2 = dx * dx + dz * dz
+    const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / l2))
+    const px = a.x + dx * t, pz = a.z + dz * t
+    const d = Math.hypot(x - px, z - pz)
+    if (d < best) { best = d; bx = px; bz = pz }
+  }
+  return { dist: best, px: bx, pz: bz }
+}
+
 export interface Terrain {
   site: SiteConfig
   sculpt: SculptGrid | null
   pads: Pad[]
+  cuts: Cut[]
   /** terrain height (m) at local plot coords. Extends the same slope beyond the plot. */
   heightAt(x: number, z: number): number
   /** base (unsculpted) plane height */
@@ -62,7 +85,7 @@ export interface Terrain {
   slopeAt(x: number, z: number): { slopeDeg: number; aspectDeg: number }
 }
 
-export function createTerrain(site: SiteConfig, sculpt: SculptGrid | null = null, pads: Pad[] = []): Terrain {
+export function createTerrain(site: SiteConfig, sculpt: SculptGrid | null = null, pads: Pad[] = [], cuts: Cut[] = []): Terrain {
   const s = Math.tan(site.slopeDeg * D2R)
   const cs = Math.tan(site.crossSlopeDeg * D2R)
   const d = downhillDir(site.aspectDeg)
@@ -100,6 +123,23 @@ export function createTerrain(site: SiteConfig, sculpt: SculptGrid | null = null
       const w = padWeight(p, x, z)
       if (w > 0) h += (p.level - h) * w
     }
+    for (const c of cuts) {
+      const n = nearestOnPolyline(c.pts, x, z)
+      const half = c.width / 2
+      if (n.dist < half * 2.2) {
+        if (n.dist < half) {
+          const t = n.dist / half
+          h -= c.depth * (0.5 + 0.5 * Math.cos(Math.PI * t))
+        } else {
+          // berm on the downhill side only
+          const side = (x - n.px) * d.x + (z - n.pz) * d.z
+          if (side > 0) {
+            const t = (n.dist - half) / (half * 1.2)
+            if (t < 1) h += c.depth * 0.45 * Math.sin(Math.PI * t)
+          }
+        }
+      }
+    }
     return h
   }
 
@@ -123,7 +163,7 @@ export function createTerrain(site: SiteConfig, sculpt: SculptGrid | null = null
     return { slopeDeg: Math.atan(mag) / D2R, aspectDeg: mag < 1e-9 ? 0 : az }
   }
 
-  return { site, sculpt, pads, heightAt, baseHeightAt: base, normalAt, slopeAt }
+  return { site, sculpt, pads, cuts, heightAt, baseHeightAt: base, normalAt, slopeAt }
 }
 
 /** Zero border nodes so the plot boundary stays exact. */
