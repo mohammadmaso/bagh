@@ -15,10 +15,14 @@ import { snap as snapGrid } from '../core/geometry2d'
 import { applyBrush, decodeSculpt, encodeSculpt } from '../core/sculpt'
 import type { SculptGrid } from '../core/terrain'
 import { calibrateOverlay } from '../core/imagery'
+import { edgeFrame } from './siteLayer'
 
 type Drag =
   | { kind: 'move'; session: string; primary: string; start: Map<string, { x: number; z: number; points?: Vec2[] }>; startHit: THREE.Vector3; lastDelta: { x: number; z: number }; moved: boolean }
   | { kind: 'vertex'; session: string; id: string; index: number }
+  | { kind: 'gate'; session: string; id: string; grab: number }
+  | { kind: 'house'; session: string; grabX: number; grabZ: number }
+  | { kind: 'houseSize'; session: string; side: 'north' | 'south' | 'east' | 'west' }
   | { kind: 'box'; x0: number; y0: number; additive: boolean }
   | { kind: 'sculpt'; session: string; work: SculptGrid; target: number; last: number; lastCommit: number }
 
@@ -182,6 +186,14 @@ export class Interaction {
       }
       return
     }
+    if (hit && ui.tool === 'select') {
+      const sd = this.siteDragAt(hit)
+      if (sd) {
+        this.drag = sd
+        this.engine.controls.enabled = false
+        return
+      }
+    }
     if (e.shiftKey) {
       this.drag = { kind: 'box', x0: e.clientX, y0: e.clientY, additive: true }
       this.engine.controls.enabled = false
@@ -236,6 +248,7 @@ export class Interaction {
       return
     }
     if (d?.kind === 'move' && hit) { this.dragMove(d, hit); return }
+    if ((d?.kind === 'gate' || d?.kind === 'house' || d?.kind === 'houseSize') && hit) { this.dragSite(d, hit); return }
 
     // hover / ghosts
     if (ui.tool === 'place' && ui.placingType && hit) {
@@ -267,6 +280,82 @@ export class Interaction {
   }
 
   private cursorPoint = false
+
+  /** Gate / cabin hit-test for direct manipulation in the viewport. */
+  private siteDragAt(hit: THREE.Vector3): Drag | null {
+    const site = this.site
+    const session = 'site' + Date.now()
+    for (const g of site.gates) {
+      const f = edgeFrame(site, g.edge)
+      const s = (hit.x - f.ox) * f.dx + (hit.z - f.oz) * f.dz
+      const perp = Math.abs((hit.x - f.ox) * f.dz - (hit.z - f.oz) * f.dx)
+      if (perp <= 1 && s >= g.offset - 0.3 && s <= g.offset + g.width + 0.3) return { kind: 'gate', session, id: g.id, grab: s - g.offset }
+    }
+    const h = site.house
+    const cx = site.width / 2 + h.offsetX, cz = site.depth - h.setbackSouth - h.depth / 2
+    const dx = hit.x - cx, dz = hit.z - cz
+    const hw = h.width / 2, hd = h.depth / 2, tol = 0.4
+    if (Math.abs(dx) <= hw + tol && Math.abs(dz) <= hd + tol) {
+      const inner = Math.abs(dx) <= hw - tol && Math.abs(dz) <= hd - tol
+      if (!inner) {
+        const dE = Math.abs(dx - hw), dW = Math.abs(dx + hw), dN = Math.abs(dz + hd), dS = Math.abs(dz - hd)
+        const m = Math.min(dE, dW, dN, dS)
+        const side = m === dE ? 'east' : m === dW ? 'west' : m === dN ? 'north' : 'south'
+        return { kind: 'houseSize', session, side }
+      }
+      return { kind: 'house', session, grabX: dx, grabZ: dz }
+    }
+    return null
+  }
+
+  private dragSite(d: Extract<Drag, { kind: 'gate' | 'house' | 'houseSize' }>, hit: THREE.Vector3) {
+    const g = this.ui.gridSnap
+    useStore.getState().commit((p) => {
+      const site = p.site
+      if (d.kind === 'gate') {
+        const gate = site.gates.find((x) => x.id === d.id)
+        if (!gate) return
+        let best: { edge: typeof gate.edge; dist: number } | null = null
+        for (const e of ['north', 'east', 'south', 'west'] as const) {
+          const f = edgeFrame(site, e)
+          const dist = Math.abs((hit.x - f.ox) * f.dz - (hit.z - f.oz) * f.dx)
+          if (!best || dist < best.dist) best = { edge: e, dist }
+        }
+        const edge = best!.edge
+        const f = edgeFrame(site, edge)
+        const s = (hit.x - f.ox) * f.dx + (hit.z - f.oz) * f.dz
+        const grab = edge === gate.edge ? d.grab : gate.width / 2
+        gate.edge = edge
+        gate.offset = Math.round(Math.max(0, Math.min(f.len - gate.width, snapGrid(s - grab, g))) * 100) / 100
+        return
+      }
+      const h = site.house
+      const cx = site.width / 2 + h.offsetX, cz = site.depth - h.setbackSouth - h.depth / 2
+      const west = cx - h.width / 2, east = cx + h.width / 2, north = cz - h.depth / 2, south = cz + h.depth / 2
+      const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+      if (d.kind === 'house') {
+        const ncx = clamp(snapGrid(hit.x - d.grabX, g), h.width / 2, site.width - h.width / 2)
+        const ncz = clamp(snapGrid(hit.z - d.grabZ, g), h.depth / 2, site.depth - h.depth / 2)
+        h.offsetX = ncx - site.width / 2
+        h.setbackSouth = site.depth - ncz - h.depth / 2
+        return
+      }
+      const MIN = 2, MAX = 20
+      if (d.side === 'east' || d.side === 'west') {
+        const x = snapGrid(hit.x, g)
+        const w = clamp(d.side === 'east' ? x - west : east - x, MIN, MAX)
+        const nw = d.side === 'east' ? west : east - w
+        h.width = w
+        h.offsetX = nw + w / 2 - site.width / 2
+      } else {
+        const z = snapGrid(hit.z, g)
+        const dep = clamp(d.side === 'south' ? z - north : south - z, MIN, MAX)
+        const ns = d.side === 'south' ? north + dep : south
+        h.depth = dep
+        h.setbackSouth = Math.max(0, site.depth - ns)
+      }
+    }, d.session)
+  }
 
   private sculptCursor(hit: THREE.Vector3) {
     this.overlay.setGhost(this.ctx(), { obj: null, brushAt: { x: hit.x, z: hit.z, r: this.ui.brush.radius } })
@@ -362,7 +451,7 @@ export class Interaction {
       return
     }
     if (d?.kind === 'sculpt') { useStore.getState().commit((p) => { p.sculpt = encodeSculpt(d.work) }, d.session); useStore.setState({ lastCoalesce: null }); return }
-    if (d?.kind === 'move' || d?.kind === 'vertex') { this.overlay.setGhost(this.ctx(), { obj: null }); return }
+    if (d?.kind === 'move' || d?.kind === 'vertex' || d?.kind === 'gate' || d?.kind === 'house' || d?.kind === 'houseSize') { this.overlay.setGhost(this.ctx(), { obj: null }); return }
     if (e.button !== 0 || (e.target as HTMLElement).closest?.('.overlay-ui > *')) return
     const r = this.rect()
     if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return

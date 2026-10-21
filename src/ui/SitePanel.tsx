@@ -47,9 +47,13 @@ export function SitePanel() {
           <strong>{g.id}</strong>
           <SelectField label={t('site.gateEdge')} value={g.edge} options={edges} onChange={(v) => set((s) => { s.gates[i].edge = v })} />
           <NumField label={t('site.gateOffset')} value={g.offset} min={0} onChange={(v) => set((s) => { s.gates[i].offset = v })} id={`go${i}`} />
+          <SelectField label={t('site.gateKind')} value={g.kind} options={[{ value: 'vehicle', label: t('site.gateVehicle') }, { value: 'pedestrian', label: t('site.gatePed') }]} onChange={(v) => set((s) => { s.gates[i].kind = v })} />
           <NumField label={t('site.gateWidth')} value={g.width} min={0.6} max={8} onChange={(v) => set((s) => { s.gates[i].width = v })} id={`gw${i}`} />
+          <button className="btn" onClick={() => set((s) => { s.gates.splice(i, 1) })}>{t('site.gateRemove')}</button>
         </div>
       ))}
+      <p><button className="btn" onClick={() => set((s) => { let n = 1; while (s.gates.some((x) => x.id === 'gate' + n)) n++; s.gates.push({ id: 'gate' + n, edge: 'south', offset: 2, width: 1, kind: 'pedestrian' }) })}>{t('site.gateAdd')}</button></p>
+      <p className="hint">{t('site.dragHint')}</p>
 
       <h3>{t('site.house')}</h3>
       <NumField label={t('site.houseW')} value={site.house.width} min={2} max={20} onChange={(v) => set((s) => { s.house.width = v })} />
@@ -59,6 +63,10 @@ export function SitePanel() {
       <NumField label={t('site.overhang')} value={site.house.overhang} min={0} max={2} onChange={(v) => set((s) => { s.house.overhang = v })} />
       <NumField label={t('site.setback')} value={site.house.setbackSouth} min={0} onChange={(v) => set((s) => { s.house.setbackSouth = v })} />
       <NumField label={t('site.offsetX')} value={site.house.offsetX} onChange={(v) => set((s) => { s.house.offsetX = v })} />
+
+      <SelectField label={t('site.doorWall')} value={site.house.door.wall} options={edges} onChange={(v) => set((s) => { s.house.door.wall = v })} />
+      <NumField label={t('site.doorOffset')} value={site.house.door.offset} onChange={(v) => set((s) => { s.house.door.offset = v })} id="do-off" />
+      <NumField label={t('site.doorWidth')} value={site.house.door.width} min={0.6} max={3} onChange={(v) => set((s) => { s.house.door.width = v })} id="do-w" />
 
       <h3>{t('site.horizon')}</h3>
       {site.horizon.map((h, i) => (
